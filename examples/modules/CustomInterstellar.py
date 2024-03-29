@@ -1,4 +1,4 @@
-from __future__ import print_function, division
+""" Interstellar module for X-PSI PST + nsx + nsx modelling of NICER & XMM PSR_J0614-3329 event data. """
 
 import numpy as np
 import math
@@ -9,21 +9,24 @@ from xpsi import Parameter
 from scipy.interpolate import Akima1DInterpolator
 
 class CustomInterstellar(xpsi.Interstellar):
-    """ Apply interstellar attenuation. """
+    """ Apply interstellar attenuation model att. """
 
-    def __init__(self, energies, attenuation, bounds, values = {}):
+    def __init__(self, energies, attenuation, bounds, values = None):
+
+        if values is None: values = {}
 
         assert len(energies) == len(attenuation), 'Array length mismatch.'
 
         self._lkp_energies = energies # for lookup
         self._lkp_attenuation = attenuation # for lookup
 
-        N_H = Parameter('column_density',
-                        strict_bounds = (0.0,10.0),
-                        bounds = bounds.get('column_density', None),
-                        doc = 'Units of 10^20 cm^-2.',
+        N_H = Parameter('neutral_hydrogen_column_density',
+                        strict_bounds = (0.0, 50.0),
+                        bounds = bounds.get('neutral_hydrogen_column_density', None),
+                        doc = 'Neutral hydrogen column density in units of the fiducial column density',
                         symbol = r'$N_{\rm H}$',
-                        value = values.get('column_density', None))
+                        value = values.get('neutral_hydrogen_column_density', None),
+                        permit_prepend = False)
 
         self._interpolator = Akima1DInterpolator(self._lkp_energies,
                                                  self._lkp_attenuation)
@@ -37,7 +40,7 @@ class CustomInterstellar(xpsi.Interstellar):
         Useful for post-processing.
 
         """
-        return self._interpolate(energies)**(self['column_density']/0.4)
+        return self._interpolate(energies)**(self['neutral_hydrogen_column_density'])
 
     def _interpolate(self, energies):
         """ Helper. """
@@ -46,13 +49,21 @@ class CustomInterstellar(xpsi.Interstellar):
         return _att
 
     @classmethod
-    def from_SWG(cls, path, **kwargs):
-        """ Load attenuation file from the NICER SWG. """
+    def load(cls, path,
+             energy_column=0,
+             attenuation_column=1,
+             **kwargs):
+        """ Load attenuation file. """
+
+        # check the loading assumptions and comment out the exception throw if they are true
+        #raise NotImplementedError('Implement the class method to load the interstellar attenuation table.')
+
+        # template
 
         temp = np.loadtxt(path, dtype=np.double)
 
-        energies = temp[0:351,0]
+        energies = temp[:,energy_column]
 
-        attenuation = temp[0:351,2]
+        attenuation = temp[:,attenuation_column]
 
         return cls(energies, attenuation, **kwargs)

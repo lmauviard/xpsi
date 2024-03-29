@@ -1,132 +1,138 @@
+""" Instrument module for X-PSI modelling. Includes loading of any instrument's response."""
+
 import numpy as np
-import math
+from astropy.io import fits
+from astropy.table import Table
+import matplotlib.pyplot as plt
 
 import xpsi
 
 from xpsi import Parameter
 from xpsi.utils import make_verbose
-
-from astropy.io import fits
-from astropy.table import Table
-from astropy.table import QTable
-
-nCH_NICER = 1501
-nIN_NICER = 3451
-
-# Instrument Class
+from xpsi.Instrument import ResponseError
 
 class CustomInstrument(xpsi.Instrument):
 
-    """ Telescope response, from fits files. """
+    """ XTI, PN, MOS1, and MOS2. """
+    def construct_matrix(self):
+        """ Implement response matrix parameterisation. """
+        matrix = self['energy_independent_effective_area_scaling_factor'] * self.matrix
+        matrix[matrix < 0.0] = 0.0
+
+        return matrix
 
     def __call__(self, signal, *args):
-        """ Overwrite base just to show it is possible.
+        """ Overwrite. """
 
-        We loaded only a submatrix of the total instrument response
-        matrix into memory, so here we can simplify the method in the
-        base class.
-
-        """
         matrix = self.construct_matrix()
+        self._cached_signal = np.dot(matrix, signal)
 
-        self._folded_signal = np.dot(matrix, signal)
-
-        return self._folded_signal
+        return self._cached_signal
 
     @classmethod
-    def from_response_files(cls, ARF, RMF, channel_edges,max_input,
-                            min_input=0,channel=[1,1500],
-                            ):
-        """ Constructor which converts response files into :class:`numpy.ndarray`s.
-        :param str ARF: Path to ARF which is compatible with
-                                :func:`numpy.loadtxt`.
-        :param str RMF: Path to RMF which is compatible with
-                                :func:`numpy.loadtxt`.
-        :param str channel_edges: Path to edges which is compatible with
-                                  :func:`numpy.loadtxt`.
-        """
-
-        if min_input != 0:
-            min_input = int(min_input)
-
-        max_input = int(max_input)
-
-        matrix = np.ascontiguousarray(RMF[min_input:max_input,channel[0]:channel[1]].T, dtype=np.double)
-
-        edges = np.zeros(ARF[min_input:max_input,2].shape[0]+1, dtype=np.double)
-
-        edges[0] = ARF[min_input,0]; edges[1:] = ARF[min_input:max_input,1]
-
-        for i in range(matrix.shape[0]):
-            matrix[i,:] *= ARF[min_input:max_input,2]
-
-
-        channels = np.arange(channel[0],channel[1])
-
-        return cls(matrix, edges, channels, channel_edges[channel[0]:channel[1]+1,1])
-
-    
-    @classmethod
-    @make_verbose('Loading response matrix',
+    @make_verbose('Loading instrument response matrix',
                   'Response matrix loaded')
-    def from_ogip_fits(cls, bounds, values, ARF, RMF, **kwargs):
+    def from_ogip_fits(cls,
+              ARF_path,
+              RMF_path,
+              min_channel=0,
+              max_channel=-1,
+              min_input=1,
+              max_input=-1,
+              bounds=dict(),
+              values=dict(),
+              **kwargs):
         
-        # Extract values
-        min_input = input[0]
-        max_input = input[1]
-        min_channel = channel[0]
-        max_channel = channel[1]
+        """ Load any instrument response matrix. """
+    
+        # Open useful values in ARF/RMF    
+        with fits.open( ARF_path ) as ARF_hdul:
+            ARF_instr = ARF_hdul['SPECRESP'].header['INSTRUME']
+            
+        with fits.open( RMF_path ) as RMF_hdul:
+            RMF_header = RMF_hdul['MATRIX'].header
+        RMF_instr = RMF_header['INSTRUME'] 
+        DETCHANS = RMF_header['DETCHANS']
+        NUMGRP = RMF_header['NAXIS2']
+        TLMIN = RMF_header['TLMIN4']
+        TLMAX = RMF_header['TLMAX4']
 
-        if min_input != 0:
-            min_input = int(min_input)
-        max_input = int(max_input)
+        # Get the values and change the -1 values if requried
+        if max_channel == -1:
+            max_channel = DETCHANS -1
+        if max_input == -1:
+            max_input = NUMGRP
+        channels = np.arange( min_channel, max_channel+1 )
+        inputs = np.arange( min_input, max_input+1  )
 
-        # READ ARF
-        ARFdata = Table.read(ARF, 'SPECRESP')
+        # Perform routine checks
+        assert ARF_instr == RMF_instr
+        assert min_channel >= TLMIN and max_channel <= TLMAX
+        assert min_input >= 0 and max_input <= NUMGRP
 
-        # READ RMF
-        RMFdata = Table.read(RMF, 'MATRIX')
-        f_channels = RMFdata['F_CHAN']
-        n_channels = RMFdata['N_CHAN']
+        # If everything in order, get the data
+        with fits.open( RMF_path ) as RMF_hdul:
+            RMF_MATRIX = RMF_hdul['MATRIX'].data
+            RMF_EBOUNDS = RMF_hdul['EBOUNDS'].data
 
-        if min_channel == 0:
-            min_channel = 1 #the first channel is channel 1
-        
-        # Make the edges and initiate matrix
-        try:
-            channels = np.arange( min_channel, max_channel )
-            channels_edges = np.arange( min_channel, max_channel+1 ) * 1e-2
-            energy_edges = RMFdata['ENERG_LO'][min_input:max_input+1]
-            matrix = np.zeros(shape = [max_channel-min_channel,max_input-min_input])
-        except:
-            raise ValueError
+        # Get the channels from the data
+        RMF = np.zeros((DETCHANS, NUMGRP))
+        for i, (N_GRP, F_CHAN, N_CHAN, RMF_line) in enumerate( zip(RMF_MATRIX['N_GRP'], RMF_MATRIX['F_CHAN'], RMF_MATRIX['N_CHAN'], RMF_MATRIX['MATRIX']) ):
 
-        # Loop over RMF inputs
-        for i in range(min_input,max_input):
+            # Skip if needed
+            if N_GRP == 0:
+                continue
 
-            # Extract relevant values
-            f_channel = f_channels[i]
-            n_channel = n_channels[i]
-            RMF_line = RMFdata['MATRIX'][i]
+            # Check the values
+            if not isinstance(F_CHAN, np.ndarray ):
+                F_CHAN = [F_CHAN]
+                N_CHAN = [N_CHAN]
 
-            # Get indexes
-            if (f_channel+n_channel>=min_channel) and (f_channel<=max_channel):
+            # Add the values to the RMF
+            n_skip = 0 
+            for f_chan, n_chan in zip(F_CHAN,N_CHAN):
 
-                # Channel indexes
-                ch_i = 0 if f_channel>=min_channel else min_channel - f_channel
-                ch_f = n_channel if f_channel+n_channel<= max_channel else max_channel-f_channel#-1
-                
-                ch_i_m = 0 if f_channel<= min_channel else f_channel- min_channel
-                ch_f_m = max_channel-min_channel if max_channel<f_channel+n_channel else f_channel+n_channel- min_channel#-1
-                
-                # print( ch_i, ch_f, ch_i_m, ch_f_m )
-                matrix[ch_i_m:ch_f_m,i-min_input] += RMF_line[ch_i:ch_f] * ARFdata['SPECRESP'][i]
-        
-        alpha = Parameter('alpha',
+                if n_chan == 0:
+                    continue
+
+                RMF[f_chan:f_chan+n_chan,i] += RMF_line[n_skip:n_skip+n_chan]
+                n_skip += n_chan
+
+        # Make the RSP
+        ARF = Table.read(ARF_path, 'SPECRESP')
+        ARF_area = ARF['SPECRESP']
+
+        # Extract the required matrix
+        RSP = RMF * ARF_area
+        RSP = RSP[min_channel:max_channel+1,min_input-1:max_input]
+
+        # Find empty columns and lines
+        empty_channels = np.all(RSP == 0, axis=1)
+        empty_inputs = np.all(RSP == 0, axis=0)
+        RSP = RSP[~empty_channels][:,~empty_inputs]
+        channels = channels[ ~empty_channels ]
+        inputs = inputs[ ~empty_inputs ]
+        if empty_inputs.sum() > 0:
+            print(f'Triming the response matrix because it contains lines with only 0 values.\n Now min_input={inputs[0]} and max_input={inputs[-1]}')
+        if empty_channels.sum() > 0:
+            print(f'Triming the response matrix because it contains columns with only 0 values.\n Now min_channel={channels[0]} and max_channel={channels[-1]}')
+
+        # Get the edges of energies for both inputand channel
+        energy_edges = np.append( ARF['ENERG_LO'][inputs-1], ARF['ENERG_HI'][inputs[-1]-1])
+        channel_energy_edges = np.append(RMF_EBOUNDS['E_MIN'][channels],RMF_EBOUNDS['E_MAX'][channels[-1]])
+
+        # Make the scaling
+        alpha_name = 'energy_independent_effective_area_scaling_factor'
+        alpha = Parameter(alpha_name,
                           strict_bounds = (0.1,1.9),
-                          bounds = bounds.get('alpha', None),
-                          doc='NICER energy-independent scaling factor',
-                          symbol = r'$\alpha_{\rm NICER}$',
-                          value = values.get('alpha', None))
-
-        return cls(matrix, energy_edges, channels, channels_edges, alpha, **kwargs)
+                          bounds = bounds.get(alpha_name, None),
+                          doc=f'{RMF_instr} {alpha_name}',
+                          symbol = r'$\alpha_{\rm INSTRUMENT}$'.replace('INSTRUMENT', RMF_instr),
+                          value = values.get(alpha_name, 1.0 if bounds.get(alpha_name, None) is None else None))
+        print( RSP.shape , energy_edges.shape, channel_energy_edges.shape  )
+        return cls(RSP,
+                   energy_edges,
+                   channels,
+                   channel_energy_edges,
+                   alpha, **kwargs)
+    
