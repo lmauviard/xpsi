@@ -1,16 +1,17 @@
 
 import os
 import sys
+import shutil
 
 import xpsi
 
-def write(filename, module):
+def write(filename, module, overwrite=True):
     """ Write a module to a file.
 
     :param filename (str): Name of the file to write to.
     :param module (str): The module to write to the file.
     """
-    with open(filename, 'w') as mod:
+    with open(filename, 'w' if overwrite else 'a') as mod:
         _module = ''''''
         for _line in module.splitlines():
             if _module:
@@ -266,11 +267,6 @@ parser.add_argument('--elsewhere-atmosphere-load',
                     help='Does a numeric atmosphere table need to be loaded from disk for elsewhere?',
                     comment=True)
 
-parser.add_argument('--attenuation-model',
-                    type=str,
-                    help='Name of interstellar attenuation model, e.g., tbnew.',
-                    empty_lines_below=2)
-
 parser.add_argument('--background-model',
                     action='store_true',
                     help='Include an incident background component?',
@@ -313,25 +309,30 @@ parser.add_argument('--main-module',
                     default='main',
                     help='Name of the main module.')
 
+parser.add_argument('--custom-data-path',
+                    type=str,
+                    default='CustomData',
+                    help='Path to the module containing the CustomData subclass to be used.')
+
+parser.add_argument('--custom-instrument-path',
+                    type=str,
+                    default='CustomInstrument',
+                    help='Path to the module containing the CustomInstrument subclass to be used.')
+
+parser.add_argument('--custom-photosphere-path',
+                    type=str,
+                    default='CustomPhotosphere',
+                    help='Path to the module containing the CustomPhotosphere subclass to be used.')
+
+parser.add_argument('--custom-interstellar-path',
+                    type=str,
+                    default='CustomInterstellar',
+                    help='Path to the module containing the CustomInterstellar subclass.')
+
 parser.add_argument('--custom-signal-module',
                     type=str,
                     default='CustomSignal',
                     help='Name of the module containing the CustomSignal subclass.')
-
-parser.add_argument('--custom-instrument-module',
-                    type=str,
-                    default='CustomInstrument',
-                    help='Name of the module containing the CustomInstrument subclass.')
-
-parser.add_argument('--custom-photosphere-module',
-                    type=str,
-                    default='CustomPhotosphere',
-                    help='Name of the module containing the CustomPhotosphere subclass.')
-
-parser.add_argument('--custom-interstellar-module',
-                    type=str,
-                    default='CustomInterstellar',
-                    help='Name of the module containing the CustomInterstellar subclass.')
 
 parser.add_argument('--custom-prior-module',
                     type=str,
@@ -653,71 +654,26 @@ _CDF_notice = 'Supply a function of one variable (the probability mass ``x``), i
 for instrument in args.instrument:
     module += (
     '''
-parser.add_argument('--{0}-exposure-time',
-                    type=float,
-                    help='{0} exposure time in seconds.',
-                    comment_line_above='{0} configuration flags')
-
-parser.add_argument('--{0}-count-matrix-path', type=str, help='{1} {0} channel-phase count matrix. If the data is a spectrum (phase-averaged), then the file must contain a vector. This path is written to if the file does not exist by processing the event files.')
-parser.add_argument('--{0}-count-matrix-type', type=str, default='double', help='{0} count matrix NumPy data type.',
-                    comment=True)
-parser.add_argument('--{0}-event-path', type=str, help='{1} {0} event list file.')
+parser.add_argument('--{0}-data-path', type=str, help='{1} {0} channel-phase count matrix. If the data is a spectrum (phase-averaged), then the file must contain a vector. This path is written to if the file does not exist by processing the event files.')
 parser.add_argument('--{0}-number-phase-bins', type=int, help='Number of phases bins for binning {0} event list file.')
-parser.add_argument('--{0}-event-file-channel-column', type=int, default=1, help='Channel column in {0} event list file.',
-                    comment=True)
-parser.add_argument('--{0}-event-file-phase-column', type=int, default=2, help='Phase column in {0} event list file.',
-                    comment=True)
-parser.add_argument('--{0}-event-file-skiprows', type=int, default=3, help='Number of top rows to skip when loading {0} event list file.',
-                    comment=True)
-parser.add_argument('--{0}-events-in-eV', action='store_true', help='{0} event list file lists events by energy in eV?',
-                    comment=True)
-parser.add_argument('--{0}-arf-path', type=str, help='{1} {0} ARF file.',
-                    comment_line_above='rule')
-parser.add_argument('--{0}-effective-area-scaling-factor', type=str, default='1.0',
-                    help='Factor by which to scale the nominal effective area model, as a mathematical expression, e.g., a ratio of integers such as 51.0/52.0.',
-                    comment=True)
-parser.add_argument('--{0}-arf-skiprows', type=int, default=3,
-                    help='Number of header rows to skip when loading ARF file.',
-                    comment=True)
-parser.add_argument('--{0}-arf-low-column', type=int, default=1,
-                    help='Column (zero-indexed) containing the low energy edges in the ARF file.',
-                    comment=True)
-parser.add_argument('--{0}-arf-high-column', type=int, default=2,
-                    help='Column (zero-indexed) containing the high energy edges in the ARF file.',
-                    comment=True)
-parser.add_argument('--{0}-arf-area-column', type=int, default=3,
-                    help='Column (zero-indexed) containing the effective area in the ARF file.',
-                    comment=True)
-
-parser.add_argument('--{0}-rmf-path', type=str, help='{1} {0} RMF file.',
-                    comment_line_above='rule')
-parser.add_argument('--{0}-rmf-skiprows', type=int, default=3,
-                    help='Number of header rows to skip when loading RMF file.',
-                    comment=True)
-parser.add_argument('--{0}-rmf-usecol', type=int, default=-1,
-                    help='Column (zero-indexed) containing the flattened redistribution matrix elements in the RMF file.',
-                    comment=True)
-
-parser.add_argument('--{0}-channels-path', type=str, help='{1} {0} channel-energy mapping file.',
-                    comment_line_above='rule')
-parser.add_argument('--{0}-channel-energies-skiprows', type=int, default=0,
-                    help='Number of header rows to skip when loading channel-energy mapping file.',
-                    comment=True)
-parser.add_argument('--{0}-channel-energies-low-column', type=int, default=0,
-                    help='Column (zero-indexed) containing the low energy edges in the channel-energy mapping file.',
-                    comment=True)
-
+parser.add_argument('--{0}-arf-path', type=str, help='{1} {0} ARF file.', comment_line_above='rule')
+parser.add_argument('--{0}-rmf-path', type=str, help='{1} {0} RMF file.', comment_line_above='rule')
 parser.add_argument('--{0}-input-bounds',
                     type=int,
                     nargs=2,
                     help='{0} bounding input energy intervals of instrument response submatrix for use with NumPy slice notation.',
                     comment_line_above='rule')
-
 parser.add_argument('--{0}-channel-bounds',
                     type=int,
                     nargs=2,
                     help='{0} bounding channels of instrument response submatrix for use with NumPy slice notation.')
 
+parser.add_argument('--{0}-energy-independent-effective-area-scaling-factor-value',
+                    type=str,
+                    action=CompileAction,
+                    help='Value for {0} energy-independent effective area scaling parameter. Either the name of an instrument to share the parameter with, as a string, or a float. {3} {4}',
+                    comment=True,
+                    empty_lines_below=2)
 parser.add_argument('--{0}-energy-independent-effective-area-scaling-factor-bounds',
                     type=str,
                     nargs=2,
@@ -725,7 +681,6 @@ parser.add_argument('--{0}-energy-independent-effective-area-scaling-factor-boun
                     help='Bounds for {0} energy-independent effective area scaling factor parameter. If no bounds are given (``None``), and no value is given (``None``), the parameter value is fixed at unity, and the instrument response model is locked to the nominal response model (unless a custom model is implemented).',
                     comment=True,
                     comment_line_above='rule')
-
 parser.add_argument('--{0}-energy-independent-effective-area-scaling-factor-prior',
                     type=str,
                     nargs='*',
@@ -735,13 +690,6 @@ parser.add_argument('--{0}-energy-independent-effective-area-scaling-factor-prio
                     comment=True,
                     inline_comment='Normal distribution with std. dev. 10%, truncated at +/- 3 std. dev.')
 
-parser.add_argument('--{0}-energy-independent-effective-area-scaling-factor-value',
-                    type=str,
-                    action=CompileAction,
-                    help='Value for {0} energy-independent effective area scaling parameter. Either the name of an instrument to share the parameter with, as a string, or a float. {3} {4}',
-                    comment=True,
-                    empty_lines_below=2)
-
 parser.add_argument('--{0}-phase-shift-bounds',
                     type=str,
                     nargs=2,
@@ -749,7 +697,6 @@ parser.add_argument('--{0}-phase-shift-bounds',
                     help='Bounds for {0} phase-shift parameter. If no bounds are given (``None``), and no value is given (``None``), the parameter value is fixed at zero, and is therefore locked to the phase of the signal specified by the hot region phases. For one phase-resolving instrument, this default behaviour is advised, and additional phase-resolving instruments can in principle have a different fixed, derived, or free phase-shift parameter. For instruments that phase-average, the phase-shift can be arbitrarily fixed or derived, but not free because the likelihood is not a function of it.',
                     comment=True,
                     comment_line_above='rule')
-
 parser.add_argument('--{0}-phase-shift-value',
                     type=str,
                     action=CompileAction,
@@ -757,27 +704,10 @@ parser.add_argument('--{0}-phase-shift-value',
                     comment=True,
                     empty_lines_below=2)
 
-parser.add_argument('--{0}-background-prior-support-path', type=str, help='{1} {0} background prior support file. The channel-by-channel lower count-rate limits in the zeroth column, and the upper count-rate limits in the first column. The channels must already match the data.',
-                    comment=True,
-                    comment_line_above='rule')
-parser.add_argument('--{0}-background-skiprows', type=int, default=0, help='Number of top rows to skip when loading {0} background file (prior support or spectrum file).',
-                    comment=True)
-
 parser.add_argument('--{0}-background-path', type=str, help='{1} {0} background spectrum file (for imaging telescope).',
-                    comment=True)
-parser.add_argument('--{0}-background-usecol', type=int, help='Column to use when loading {0} background spectrum file (for imaging telescope).',
                     comment=True)
 parser.add_argument('--{0}-background-prior-support-half-width', type=float, help='{0} background prior support half-width (for imaging telescope). The half-width is in units of standard deviation of background count number per instrument channel.',
                     comment=True)
-parser.add_argument('--{0}-background-exposure-time',
-                    type=float,
-                    help='{0} background exposure time in seconds (for imaging telescope).',
-                    comment=True)
-parser.add_argument('--{0}-background-scaling-factor',
-                    type=str,
-                    help='{0} background scaling factor, nominally the ratio of on-source CCD extraction area to background CCD extraction area (ideally on same CCD) for imaging telescope. Supply an expression for evaluation by the ``eval(...)`` builtin function.',
-                    comment=True,
-                    empty_lines_below=2)
     '''.format(instrument.replace('_','-'),
                _path,
                _bounds_default_notice,
@@ -1406,32 +1336,35 @@ if args.print_MPI_rank:
 module += (
 '''
 if __name__ == '__main__':
-    from {0} import CustomInstrument
-    from {1} import CustomSignal
-    from {2} import CustomInterstellar
+    from {0} import CustomData
+    from {1} import CustomInstrument
+    from {2} import CustomSignal
+    from {3} import CustomInterstellar
 
     try:
-        from {3} import CustomPhotosphere
+        from {4} import CustomPhotosphere
     except ImportError:
         from xpsi import Photosphere as CustomPhotosphere
 
-    from {4} import CustomPrior
+    from {5} import CustomPrior
 
 else:
-    from .{0} import CustomInstrument
-    from .{1} import CustomSignal
-    from .{2} import CustomInterstellar
+    from .{0} import CustomData
+    from .{1} import CustomInstrument
+    from .{2} import CustomSignal
+    from .{3} import CustomInterstellar
 
     try:
-        from .{3} import CustomPhotosphere
+        from .{4} import CustomPhotosphere
     except ImportError:
         from xpsi import Photosphere as CustomPhotosphere
 
-    from .{4} import CustomPrior
-'''.format(args.custom_instrument_module,
+    from .{5} import CustomPrior
+'''.format('CustomData',
+           'CustomInstrument',
            args.custom_signal_module,
-           args.custom_interstellar_module,
-           args.custom_photosphere_module,
+           'CustomInterstellar',
+           'CustomPhotosphere',
            args.custom_prior_module)
 )
 
@@ -1571,6 +1504,7 @@ for instrument in args.instrument:
     '''
 {0} = namespace()
 
+# Load {0} instrument, associated data and background, if any
 if args.{0}_{2}_value is not None:
     if eval(args.{0}_{2}_value) in {1}:
         values = dict({2} = derived_parameter(lambda x: x,
@@ -1585,85 +1519,32 @@ bounds = dict({2} = parse_bounds(args.{0}_{2}_bounds,
                                    args.{0}_{2}_value,
                                    default_to_free = False))
 
-{0}.instrument = CustomInstrument.{0}(bounds=bounds,
-                                  values=values,
-                                  ARF=args.{0}_arf_path,
-                                  RMF=args.{0}_rmf_path,
-                                  channel_energies=args.{0}_channels_path,
-                                  max_input=args.{0}_input_bounds[1],
+{0}.instrument = CustomInstrument.from_ogip_fits(
+                                  ARF_path=args.{0}_arf_path,
+                                  RMF_path=args.{0}_rmf_path,
+                                  min_channel=args.{0}_channel_bounds[0],
                                   max_channel=args.{0}_channel_bounds[1],
                                   min_input=args.{0}_input_bounds[0],
-                                  min_channel=args.{0}_channel_bounds[0],
-                                  effective_area_scaling_factor=eval(args.{0}_effective_area_scaling_factor),
-                                  ARF_skiprows=args.{0}_arf_skiprows,
-                                  ARF_low_column=args.{0}_arf_low_column,
-                                  ARF_high_column=args.{0}_arf_high_column,
-                                  ARF_area_column=args.{0}_arf_area_column,
-                                  RMF_skiprows=args.{0}_rmf_skiprows,
-                                  RMF_usecol=args.{0}_rmf_usecol,
-                                  channel_energies_skiprows=args.{0}_channel_energies_skiprows,
-                                  channel_energies_low_column=args.{0}_channel_energies_low_column)
+                                  max_input=args.{0}_input_bounds[1],
+                                  bounds=bounds,
+                                  values=values)
 
-try:
-    counts = np.loadtxt(args.{0}_count_matrix_path, dtype=np.double)
-except ValueError:
-    {0}.data = xpsi.Data.bin__event_list(args.{0}_event_path,
-                                         channels={0}.instrument.channels,
-                                         phases=np.linspace(0.0, 1.0, args.{0}_number_phase_bins + 1),
-                                         channel_column=args.{0}_event_file_channel_column,
-                                         phase_column=args.{0}_event_file_phase_column if args.{0}_number_phase_bins > 1 else None,
-                                         phase_averaged=True if args.{0}_number_phase_bins == 1 else False,
-                                         channel_edges={0}.instrument.channel_edges,
-                                         skiprows=args.{0}_event_file_skiprows,
-                                         eV=True if args.{0}_events_in_eV else False,
-                                         dtype=getattr(np, args.{0}_count_matrix_type),
-                                         first=0,
-                                         last=len({0}.instrument.channels) - 1,
-                                         exposure_time=args.{0}_exposure_time)
+{0}.data = CustomData.load(args.{0}_data_path,
+                    n_phases=args.{0}_number_phase_bins,
+                    channels={0}.instrument.channels)
 
-    np.savetxt(args.{0}_event_path.replace('.txt','_converted_to_counts.txt'), {0}.data.counts)
-    print('Counts file saved as: '+args.{0}_event_path.replace('.txt','_converted_to_counts.txt'))
-    print('Update configuration file to take in counts file to save computation time.')
-else:
-    if counts.ndim == 1:
-        counts = counts.reshape(-1,1)
+# Look for background
+background_path = None
+if args.{0}_background_path:
+    background_path = args.{0}_background_path
+elif hasattr( {0}.data , 'backfile' ) and os.path.exists(os.path.join( os.path.dirname(args.{0}_data_path), {0}.data.backfile)):      
+    background_path = os.path.join( os.path.dirname(args.{0}_data_path), {0}.data.backfile)
 
-    {0}.data = xpsi.Data(counts,
-                           channels={0}.instrument.channels,
-                           phases=np.linspace(0.0, 1.0, args.{0}_number_phase_bins + 1),
-                           first=0,
-                           last=len({0}.instrument.channels) - 1,
-                           exposure_time=args.{0}_exposure_time)
-
-if args.{0}_background_prior_support_path:
-    support = np.loadtxt(args.{0}_background_path,
-                         skiprows=args.{0}_background_skiprows,
-                         dtype=np.double)
-
-elif args.{0}_background_path:
-    spectrum = np.loadtxt(args.{0}_background_path,
-                          skiprows=args.{0}_background_skiprows,
-                          usecols=args.{0}_background_usecol,
-                          dtype=np.double)[{0}.instrument.channels]
-
-    support = np.zeros((len(spectrum), 2), dtype=np.double)
-    support[:,0] = spectrum - args.{0}_background_prior_support_half_width * np.sqrt(spectrum)
-    support[support[:,0] < 0.0, 0] = 0.0
-    support[:,1] = spectrum + args.{0}_background_prior_support_half_width * np.sqrt(spectrum)
-
-    for i in range(support.shape[0]):
-        if support[i,1] == 0.0:
-            for j in range(1, support.shape[0]):
-                if i+j < support.shape[0] and support[i+j,1] > 0.0:
-                    support[i,1] = support[i+j,1]
-                    break
-                elif i-j >= 0 and support[i-j,1] > 0.0:
-                    support[i,1] = support[i-j,1]
-                    break
-
-    support *= ({0}.data.exposure_time / args.{0}_background_exposure_time) * float(eval(args.{0}_background_scaling_factor)) # exposure ratio * scaling
-
-    support /= {0}.data.exposure_time # need count rate, so divide by exposure time
+if isinstance(background_path,str):
+    background_spectra = CustomData.load( background_path , 
+                                          n_phases=args.{0}_number_phase_bins,
+                                          channels={0}.instrument.channels)
+    support = background_spectra.spectra_support( args.{0}_background_prior_support_half_width, {0}.data.exposure )
 else:
     support = None
     '''.format(instrument,
@@ -1777,14 +1658,13 @@ bounds = dict(phase_shift = parse_bounds(args.{0}_phase_shift_bounds,
 
 signals[0].append({0}.signal)
     '''.format(instrument,
-               args.instrument,
-               'energy_independent_effective_area_scaling_factor')
+               args.instrument)
     )
 
 module += (
 '''
 bounds = dict(mass = parse_bounds(args.mass_bounds,
-                                       args.mass_value),
+                                  args.mass_value),
               radius = parse_bounds(args.radius_bounds,
                                     args.radius_value),
               distance = parse_bounds(args.distance_bounds,
@@ -2187,201 +2067,10 @@ class CustomSignal(xpsi.Signal):
 
 write(r'{}.py'.format(os.path.join(args.module_directory_path, args.custom_signal_module)), module)
 
-# Creating Photosphere module
+# Add global_variables to Photosphere module
 module = (
-'''""" Photosphere module for X-PSI {0} modelling of {1} {2} event data. """
-
-import argparse
-import re
-
-class ArgumentParserCustom(argparse.ArgumentParser):
-    """A custom implementation of argparse.ArgumentParser for handling arguments specified in a configuration file."""
-    
-    def convert_arg_line_to_args(self, arg_line):
-        """ Convert a line from a configuration file to a list of arguments.
-
-        :param arg_line (str): Line from the configuration file.
-        :return: A list of arguments.
-        """
-        if (re.match(r'^[\s]*#', arg_line) or   # look for any number of whitespace characters up to a `#` character
-            re.match(r'^[\s]*$', arg_line)):    # look for lines containing nothing or just whitespace
-            return []
-        else:
-            try:
-                _idx = arg_line.index('#')
-            except ValueError:
-                pass
-            else:
-                arg_line = arg_line[:_idx].rstrip()
-
-            return [arg_line]
-
-parser = ArgumentParserCustom(
-    description="""
-    Photosphere module for X-PSI {0} modelling of {1} {2} event data.
-
-    You should import this module.
-
-    For help: python %(prog)s -h
-
-    """,
-    fromfile_prefix_chars='@')
-'''.format(args.model,
-           _telescopes,
-           args.source)
-)
-
-if args.hot_atmosphere_load:
-    module += (
-    '''
-parser.add_argument('--hot-atmosphere-size',
-                             type=int,
-                             nargs=4,
-                             help='Size of each of the four dimensions of the numeric atmosphere table for the hot regions.')
-    '''
-    )
-
-if args.elsewhere_atmosphere_model is not None:
-    if args.elsewhere_atmosphere_load:
-        module += (
-        '''
-parser.add_argument('--elsewhere-atmosphere-size',
-                                 type=int,
-                                 nargs=4,
-                                 help='Size of each of the four dimensions of the numeric atmosphere table for elsewhere.')
-        '''
-        )
-
-module += (
 '''
-if __name__ == '__main__':
-    args, _ = parser.parse_known_args()
-else:
-    args, _ = parser.parse_known_args(['@{}'])
-'''.format(args.config_path)
-)
 
-module += (
-'''
-import numpy as np
-import math
-
-import xpsi
-
-class CustomPhotosphere(xpsi.Photosphere):
-'''
-)
-
-if args.hot_atmosphere_load:
-    module += (
-    '''
-    @xpsi.Photosphere.hot_atmosphere.setter
-    def hot_atmosphere(self, path):
-    '''
-    )
-
-    if ('NSX' in args.hot_atmosphere_model or 'nsx' in args.hot_atmosphere_model):
-        module += (
-        '''
-        table = np.loadtxt(path, dtype=np.double)
-        logT = np.zeros(args.hot_atmosphere_size[0])
-        logg = np.zeros(args.hot_atmosphere_size[1])
-        mu = np.zeros(args.hot_atmosphere_size[2])
-        logE = np.zeros(args.hot_atmosphere_size[3])
-
-        reorder_buf = np.zeros((args.hot_atmosphere_size[0],
-                                args.hot_atmosphere_size[1],
-                                args.hot_atmosphere_size[2],
-                                args.hot_atmosphere_size[3],))
-
-        index = 0
-        for i in range(reorder_buf.shape[0]):
-            for j in range(reorder_buf.shape[1]):
-                for k in range(reorder_buf.shape[3]):
-                    for l in range(reorder_buf.shape[2]):
-                        logT[i] = table[index,3]
-                        logg[j] = table[index,4]
-                        logE[k] = table[index,0]
-                        mu[reorder_buf.shape[2] - l - 1] = table[index,1]
-                        reorder_buf[i,j,reorder_buf.shape[2] - l - 1,k] = 10.0**(table[index,2])
-                        index += 1
-
-        buf = np.zeros(np.prod(reorder_buf.shape))
-
-        bufdex = 0
-        for i in range(reorder_buf.shape[0]):
-            for j in range(reorder_buf.shape[1]):
-                for k in range(reorder_buf.shape[2]):
-                    for l in range(reorder_buf.shape[3]):
-                        buf[bufdex] = reorder_buf[i,j,k,l]; bufdex += 1
-
-        self._hot_atmosphere = (logT, logg, mu, logE, buf)
-        '''
-        )
-
-    else:
-        module += (
-        '''
-        raise NotImplementedError('You need to implement the setter that loads the hot atmosphere table.')
-        '''
-        )
-
-if args.elsewhere_atmosphere_model is not None:
-    if args.elsewhere_atmosphere_load:
-        module += (
-        '''
-    @xpsi.Photosphere.elsewhere_atmosphere.setter
-    def elsewhere_atmosphere(self, path):
-        '''
-        )
-
-        if ('NSX' in args.elsewhere_atmosphere_model or 'nsx' in args.elsewhere_atmosphere_model):
-            module += (
-            '''
-        table = np.loadtxt(path, dtype=np.double)
-        logT = np.zeros(args.elsewhere_atmosphere_size[0])
-        logg = np.zeros(args.elsewhere_atmosphere_size[1])
-        mu = np.zeros(args.elsewhere_atmosphere_size[2])
-        logE = np.zeros(args.elsewhere_atmosphere_size[3])
-
-        reorder_buf = np.zeros((args.elsewhere_atmosphere_size[0],
-                                args.elsewhere_atmosphere_size[1],
-                                args.elsewhere_atmosphere_size[2],
-                                args.elsewhere_atmosphere_size[3]))
-
-        index = 0
-        for i in range(reorder_buf.shape[0]):
-            for j in range(reorder_buf.shape[1]):
-                for k in range(reorder_buf.shape[3]):
-                    for l in range(reorder_buf.shape[2]):
-                        logT[i] = table[index,3]
-                        logg[j] = table[index,4]
-                        logE[k] = table[index,0]
-                        mu[reorder_buf.shape[2] - l - 1] = table[index,1]
-                        reorder_buf[i,j,reorder_buf.shape[2] - l - 1,k] = 10.0**(table[index,2])
-                        index += 1
-
-        buf = np.zeros(np.prod(reorder_buf.shape))
-
-        bufdex = 0
-        for i in range(reorder_buf.shape[0]):
-            for j in range(reorder_buf.shape[1]):
-                for k in range(reorder_buf.shape[2]):
-                    for l in range(reorder_buf.shape[3]):
-                        buf[bufdex] = reorder_buf[i,j,k,l]; bufdex += 1
-
-        self._elsewhere_atmosphere = (logT, logg, mu, logE, buf)
-            '''
-            )
-        else:
-            module += (
-            '''
-        raise NotImplementedError('You need to implement the setter that loads the elsewhere atmosphere table.')
-            '''
-            )
-
-module += (
-'''
     @property
     def global_variables(self):
         """ For interfacing with the image-plane signal simulator.
@@ -2459,8 +2148,8 @@ else:
                "ref_p['super_temperature']" if 'DT' in args.hot_region_model[0] else 0.0,
                "ref_p['cede_temperature']" if 'DT' in args.hot_region_model[0] else "ref_p['super_temperature']")
     )
-
-write(r'{}.py'.format(os.path.join(args.module_directory_path, args.custom_photosphere_module)), module)
+shutil.copy( args.custom_photosphere_path, os.path.join(args.module_directory_path, 'CustomPhotosphere.py' ) )
+write(r'{}.py'.format(os.path.join(args.module_directory_path, 'CustomPhotosphere')), module, overwrite=False)
 
 # Creating Prior module
 module = (
@@ -3432,255 +3121,17 @@ module += (
 
 write(r'{}.py'.format(os.path.join(args.module_directory_path, args.custom_prior_module)), module)
 
-# Creating Interstellar module
-module = (
-'''""" Interstellar module for X-PSI {0} modelling of {1} {2} event data. """
-
-import numpy as np
-import math
-
-import xpsi
-from xpsi import Parameter
-
-from scipy.interpolate import Akima1DInterpolator
-
-class CustomInterstellar(xpsi.Interstellar):
-    """ Apply interstellar attenuation model {3}. """
-
-    def __init__(self, energies, attenuation, bounds, values = None):
-
-        if values is None: values = {{}}
-
-        assert len(energies) == len(attenuation), 'Array length mismatch.'
-
-        self._lkp_energies = energies # for lookup
-        self._lkp_attenuation = attenuation # for lookup
-
-        N_H = Parameter('neutral_hydrogen_column_density',
-                        strict_bounds = (0.0, 50.0),
-                        bounds = bounds.get('neutral_hydrogen_column_density', None),
-                        doc = 'Neutral hydrogen column density in units of the fiducial column density',
-                        symbol = r'$N_{{\\rm H}}$',
-                        value = values.get('neutral_hydrogen_column_density', None),
-                        permit_prepend = False)
-
-        self._interpolator = Akima1DInterpolator(self._lkp_energies,
-                                                 self._lkp_attenuation)
-        self._interpolator.extrapolate = True
-
-        super(CustomInterstellar, self).__init__(N_H)
-
-    def attenuation(self, energies):
-        """ Interpolate the attenuation coefficients.
-
-        Useful for post-processing.
-
-        """
-        return self._interpolate(energies)**(self['neutral_hydrogen_column_density'])
-
-    def _interpolate(self, energies):
-        """ Helper. """
-        _att = self._interpolator(energies)
-        _att[_att < 0.0] = 0.0
-        return _att
-
-    @classmethod
-    def load(cls, path,
-             energy_column=0,
-             attenuation_column=1,
-             **kwargs):
-        """ Load attenuation file. """
-
-        # check the loading assumptions and comment out the exception throw if they are true
-        #raise NotImplementedError('Implement the class method to load the interstellar attenuation table.')
-
-        # template
-
-        temp = np.loadtxt(path, dtype=np.double)
-
-        energies = temp[:,energy_column]
-
-        attenuation = temp[:,attenuation_column]
-
-        return cls(energies, attenuation, **kwargs)
-'''.format(args.model,
-           _telescopes,
-           args.source,
-           args.attenuation_model)
-)
-
-write(r'{}.py'.format(os.path.join(args.module_directory_path, args.custom_interstellar_module)), module)
-
-_instruments = args.instrument[0]
-for _x in args.instrument[1:-1]:
-    _instruments += ', {}'.format(_x)
-_instruments += ', and {}'.format(args.instrument[-1])
+# Creating Data module
+# Nothing needs to be specified, can be taken from a reference file
+shutil.copy( args.custom_data_path, os.path.join(args.module_directory_path, 'CustomData.py' ) )
 
 # Creating Instrument module
-module = (
-'''""" Instrument module for X-PSI {0} modelling of {1} {2} event data. """
+# Nothing needs to be specified, can be taken from a reference file
+shutil.copy( args.custom_instrument_path, os.path.join(args.module_directory_path, 'CustomInstrument.py' ) )
 
-import numpy as np
-import math
-
-import xpsi
-
-from xpsi import Parameter
-from xpsi.utils import make_verbose
-
-class CustomInstrument(xpsi.Instrument):
-    """ {3}. """
-    def construct_matrix(self):
-        """ Implement response matrix parameterisation. """
-        matrix = self['energy_independent_effective_area_scaling_factor'] * self.matrix
-        matrix[matrix < 0.0] = 0.0
-
-        return matrix
-
-    def __call__(self, signal, *args):
-        """ Overwrite. """
-
-        matrix = self.construct_matrix()
-
-        self._cached_signal = np.dot(matrix, signal)
-
-        return self._cached_signal
-'''.format(args.model,
-           _telescopes,
-           args.source,
-           _instruments)
-)
-
-for instrument in args.instrument:
-    module += (
-    '''
-    @classmethod
-    @make_verbose('Loading {0} response matrix',
-                  'Response matrix loaded')
-    def {0}(cls,
-              bounds,
-              values,
-              ARF,
-              RMF,
-              channel_energies,
-              max_input,
-              max_channel,
-              min_input=0,
-              min_channel=0,
-              effective_area_scaling_factor=1.0,
-              ARF_skiprows=0,
-              ARF_low_column=1,
-              ARF_high_column=2,
-              ARF_area_column=3,
-              RMF_skiprows=0,
-              RMF_usecol=-1,
-              channel_energies_skiprows=0,
-              channel_energies_low_column=0,
-              **kwargs):
-        """ Load {0} instrument response matrix. """
-
-        alpha = Parameter('{1}',
-                          strict_bounds = (0.1,1.9),
-                          bounds = bounds.get('{1}', None),
-                          doc='{0} energy-independent effective area scaling factor',
-                          symbol = r'$\\alpha_{{\\rm {0}}}$',
-                          value = values.get('{1}',
-                                             1.0 if bounds.get('{1}', None) is None else None))
-
-        # check the loading assumptions and comment out the exception throw if they are true
-        #raise NotImplementedError('Implement the class method for loading the {0} instrument.')
-
-        #working template for the github example:
-        #if min_input != 0:
-        #    min_input = int(min_input)
-        #max_input = int(max_input)
-        #ARF = np.loadtxt(ARF, dtype=np.double, skiprows=3)
-        #RMF = np.loadtxt(RMF, dtype=np.double)
-        #channel_energies = np.loadtxt(channel_energies, dtype=np.double, skiprows=3)[:,1:]
-        #matrix = np.ascontiguousarray(RMF[min_input:max_input,20:201].T, dtype=np.double)
-        #edges = np.zeros(ARF[min_input:max_input,3].shape[0]+1, dtype=np.double)
-        #edges[0] = ARF[min_input,1]; edges[1:] = ARF[min_input:max_input,2]
-        #for i in range(matrix.shape[0]):
-        #    matrix[i,:] *= ARF[min_input:max_input,3]
-        #channels = np.arange(20, 201)
-        #return cls(matrix, edges, channels, channel_energies[20:202,-2], alpha, **kwargs)
-
-
-        # another template
-        #ARF = np.loadtxt(ARF, dtype=np.double, skiprows=ARF_skiprows)
-        #RMF = np.loadtxt(RMF, dtype=np.double, skiprows=RMF_skiprows, usecols=RMF_usecol)
-        #channel_energies = np.loadtxt(channel_energies, dtype=np.double, skiprows=channel_energies_skiprows)
-
-        #matrix = np.zeros((channel_energies.shape[0], ARF.shape[0]))
-
-        #for i in range(ARF.shape[0]):
-        #    matrix[:,i] = RMF[i*channel_energies.shape[0]:(i+1)*channel_energies.shape[0]]
-
-        #max_input = int(max_input)
-        #if min_input != 0:
-        #    min_input = int(min_input)
-
-        #edges = np.zeros(max_input - min_input + 1, dtype=np.double)
-
-        #edges[0] = ARF[min_input, ARF_low_column]; edges[1:] = ARF[min_input:max_input, ARF_high_column]
-
-        #RSP = np.zeros((max_channel - min_channel,
-        #                max_input - min_input), dtype=np.double)
-
-        #for i in range(RSP.shape[0]):
-        #    RSP[i,:] = matrix[i+min_channel, min_input:max_input] * ARF[min_input:max_input, ARF_area_column] * effective_area_scaling_factor
-
-        #channels = np.arange(min_channel, max_channel)
-
-        _RMF_path = RMF
-        ARF = np.loadtxt(ARF, dtype=np.double, skiprows=ARF_skiprows)
-        RMF = np.loadtxt(_RMF_path, dtype=np.double, skiprows=RMF_skiprows, usecols=RMF_usecol)
-        RMF_zerocol = np.loadtxt(_RMF_path, dtype=np.double, skiprows=RMF_skiprows, usecols=0)
-        channel_energies = np.loadtxt(channel_energies, dtype=np.double, skiprows=channel_energies_skiprows)
-
-        matrix = np.zeros((channel_energies.shape[0], ARF.shape[0]))
-
-        last = 0
-        k = 0
-        counter = 0
-        for i in range(RMF_zerocol.shape[0]):
-            if math.floor(RMF_zerocol[i]) == RMF_zerocol[i] and RMF_zerocol[i] != 0.0:
-                counter += 1
-                if i == 0: continue
-                else:
-                    for j in range(i - last):
-                        matrix[channel_energies.shape[0] - i + last + j, k] = RMF[last + j] #* ARF[k, ARF_area_column]
-                    #if i - last != channel_energies.shape[0]:
-                    #    print('arf i=%i'%RMF_zerocol[i], 'i=%i'%i, 'last=%i'%last, 'nchans=%i'%(i - last))
-                    last = i
-                    k += 1
-
-        max_input = int(max_input)
-        if min_input != 0:
-            min_input = int(min_input)
-
-        edges = np.zeros(max_input - min_input + 1, dtype=np.double)
-
-        edges[0] = ARF[min_input, ARF_low_column]; edges[1:] = ARF[min_input:max_input, ARF_high_column]
-
-        RSP = np.zeros((max_channel - min_channel,
-                        max_input - min_input), dtype=np.double)
-
-        for i in range(RSP.shape[0]):
-            RSP[i,:] = matrix[i+min_channel, min_input:max_input] * ARF[min_input:max_input, ARF_area_column] * effective_area_scaling_factor
-
-        channels = np.arange(min_channel, max_channel)
-
-        return cls(RSP,
-                   edges,
-                   channels,
-                   channel_energies[min_channel:max_channel+1,channel_energies_low_column],
-                   alpha, **kwargs)
-    '''.format(instrument,
-               'energy_independent_effective_area_scaling_factor')
-    )
-
-write(r'{}.py'.format(os.path.join(args.module_directory_path, args.custom_instrument_module)), module)
+# Creating Interstellar module
+# Nothing needs to be specified, can be taken from a reference file
+shutil.copy( args.custom_interstellar_path, os.path.join(args.module_directory_path, 'CustomInterstellar.py' ) )
 
 if not args.background_model:
     sys.exit(0)

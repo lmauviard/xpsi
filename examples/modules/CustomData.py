@@ -46,7 +46,7 @@ class CustomData(xpsi.Data):
                     exposure_time=exposure )
     
     @classmethod
-    def EPIC_from_fits(cls, EPIC_path ):
+    def EPIC_from_fits( cls, EPIC_path ):
 
         # Read the fits files
         with fits.open( EPIC_path ) as hdul:
