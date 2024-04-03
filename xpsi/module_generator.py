@@ -649,25 +649,24 @@ _path = 'Absolute or relative path to'
 _bounds_default_notice = 'If no bounds are given (``None``), and no value is given (``None``), bounds default to the source code strict bounds.'
 _value_notice = 'No value means the parameter is free, whilst a value means the parameter is fixed (and the prior may need to be modified manually). If you want the parameter to be derived from other parameters in a complex way, manual modification of the main module is necessary, but we support functions of one parameter in the configuration file.'
 _derived_notice = 'If the parameter is derived from one other parameter, e.g., the temperature of a hot region is derived from the temperature of the other hot region, then the value needs to be written using the following template: lambda x: f(x), "parameter", "space". In this template: f(x) is a function of the parameter x from which the value is derived; "parameter" is the name of the parameter x as a string; and "space" is an object in the global namespace, with name written as a string, which is a (sub)space of parameters from which the current value of parameter x can be accessed via getitem magic using "parameter".'
-_CDF_notice = 'Supply a function of one variable (the probability mass ``x``), in the form of an expression that can be evaluated with the ``eval(...)`` builtin function, i.e., scipy.stats.truncnorm(x, ...). Note that the prior default PDF is uniform (with compact support), so do not supply a CDF if a uniform prior is desired, or to be explicit, use: DEFAULT UNIFORM. You must use DEFAULT UNIFORM to overwrite a default CDF shown in the auto-generated configuration file, unless the parameter is fixed/derived in which case the prior flag is silently ignored. You can also use the flag more than once: the last usage must be an expression that will be dynamically evaluated using the ``eval(...)`` builtin and must return a float to set as the parameter value; the other usages can be helper statements executed with the ``exec(...)`` builtin, e.g., to set temporary local variables to make the code (and configuration file more readable).'
+_CDFnotice = 'Supply a function of one variable (the probability mass ``x``), in the form of an expression that can be evaluated with the ``eval(...)`` builtin function, i.e., scipy.stats.truncnorm(x, ...). Note that the prior default PDF is uniform (with compact support), so do not supply a CDF if a uniform prior is desired, or to be explicit, use: DEFAULT UNIFORM. You must use DEFAULT UNIFORM to overwrite a default CDF shown in the auto-generated configuration file, unless the parameter is fixed/derived in which case the prior flag is silently ignored. You can also use the flag more than once: the last usage must be an expression that will be dynamically evaluated using the ``eval(...)`` builtin and must return a float to set as the parameter value; the other usages can be helper statements executed with the ``exec(...)`` builtin, e.g., to set temporary local variables to make the code (and configuration file more readable).'
 
 for instrument in args.instrument:
     module += (
     '''
-parser.add_argument('--{0}-data-path', type=str, help='{1} {0} channel-phase count matrix. If the data is a spectrum (phase-averaged), then the file must contain a vector. This path is written to if the file does not exist by processing the event files.')
-parser.add_argument('--{0}-number-phase-bins', type=int, help='Number of phases bins for binning {0} event list file.')
-parser.add_argument('--{0}-arf-path', type=str, help='{1} {0} ARF file.', comment_line_above='rule')
-parser.add_argument('--{0}-rmf-path', type=str, help='{1} {0} RMF file.', comment_line_above='rule')
+parser.add_argument('--{0}-data-folder', type=str, default=None, help='{1} {0} path to the data directory to add in front of all subsequent files. If not given, will be considered empty and use the full path for all the data.', comment_line_above='rule')
+parser.add_argument('--{0}-counts-file', type=str, help='{1} {0} event file or PHA spectrum in an OGIP fits format. If the data is a spectrum, then {0}-number-phase-bins will be overlooked.')
+parser.add_argument('--{0}-number-phase-bins', type=int, default=32, help='Number of phases bins for binning {0} event list file.')
+parser.add_argument('--{0}-arf-path', type=str, help='{1} {0} ARF file.')
+parser.add_argument('--{0}-rmf-path', type=str, help='{1} {0} RMF file.')
 parser.add_argument('--{0}-input-bounds',
                     type=int,
                     nargs=2,
-                    help='{0} bounding input energy intervals of instrument response submatrix for use with NumPy slice notation.',
-                    comment_line_above='rule')
+                    help='{0} bounding input energy intervals of instrument response submatrix for use with NumPy slice notation.')
 parser.add_argument('--{0}-channel-bounds',
                     type=int,
                     nargs=2,
                     help='{0} bounding channels of instrument response submatrix for use with NumPy slice notation.')
-
 parser.add_argument('--{0}-energy-independent-effective-area-scaling-factor-value',
                     type=str,
                     action=CompileAction,
@@ -679,8 +678,7 @@ parser.add_argument('--{0}-energy-independent-effective-area-scaling-factor-boun
                     nargs=2,
                     action=CompileAction,
                     help='Bounds for {0} energy-independent effective area scaling factor parameter. If no bounds are given (``None``), and no value is given (``None``), the parameter value is fixed at unity, and the instrument response model is locked to the nominal response model (unless a custom model is implemented).',
-                    comment=True,
-                    comment_line_above='rule')
+                    comment=True)
 parser.add_argument('--{0}-energy-independent-effective-area-scaling-factor-prior',
                     type=str,
                     nargs='*',
@@ -689,21 +687,18 @@ parser.add_argument('--{0}-energy-independent-effective-area-scaling-factor-prio
                     help='Prior inverse CDF of the energy-independent effective area scaling factor. {5}',
                     comment=True,
                     inline_comment='Normal distribution with std. dev. 10%, truncated at +/- 3 std. dev.')
-
 parser.add_argument('--{0}-phase-shift-bounds',
                     type=str,
                     nargs=2,
                     action=CompileAction,
                     help='Bounds for {0} phase-shift parameter. If no bounds are given (``None``), and no value is given (``None``), the parameter value is fixed at zero, and is therefore locked to the phase of the signal specified by the hot region phases. For one phase-resolving instrument, this default behaviour is advised, and additional phase-resolving instruments can in principle have a different fixed, derived, or free phase-shift parameter. For instruments that phase-average, the phase-shift can be arbitrarily fixed or derived, but not free because the likelihood is not a function of it.',
-                    comment=True,
-                    comment_line_above='rule')
+                    comment=True)
 parser.add_argument('--{0}-phase-shift-value',
                     type=str,
                     action=CompileAction,
                     help='Value for {0} phase-shift parameter. Either the name of an instrument to share the parameter with, as a string, or a float. {3} {4}',
                     comment=True,
                     empty_lines_below=2)
-
 parser.add_argument('--{0}-background-path', type=str, help='{1} {0} background spectrum file (for imaging telescope).',
                     comment=True)
 parser.add_argument('--{0}-background-prior-support-half-width', type=float, help='{0} background prior support half-width (for imaging telescope). The half-width is in units of standard deviation of background count number per instrument channel.',
@@ -1146,13 +1141,6 @@ if args.hot_atmosphere_load:
     '''
 parser.add_argument('--hot-atmosphere-path', type=str, help='{0} hot atmosphere file.',
                              comment_line_above='hot atmosphere flags')
-
-parser.add_argument('--hot-atmosphere-size',
-                    type=int,
-                    nargs=4,
-                    action=NullAction,
-                    help='Size of each of the four dimensions of the numeric atmosphere table for the hot regions.',
-                    empty_lines_below=2)
     '''.format(_path)
     )
 
@@ -1527,11 +1515,13 @@ bounds = dict({2} = parse_bounds(args.{0}_{2}_bounds,
                                   min_input=args.{0}_input_bounds[0],
                                   max_input=args.{0}_input_bounds[1],
                                   bounds=bounds,
-                                  values=values)
+                                  values=values,
+				  datafolder=args.{0}_data_path)
 
 {0}.data = CustomData.load(args.{0}_data_path,
                     n_phases=args.{0}_number_phase_bins,
-                    channels={0}.instrument.channels)
+                    channels={0}.instrument.channels,
+		    datafolder=args.{0}_data_path)
 
 # Look for background
 background_path = None
