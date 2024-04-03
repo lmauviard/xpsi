@@ -1,5 +1,6 @@
 """ Instrument module for X-PSI modelling. Includes loading of any instrument's response."""
 
+import os
 import numpy as np
 from astropy.io import fits
 from astropy.table import Table
@@ -41,10 +42,15 @@ class CustomInstrument(xpsi.Instrument):
               max_input=-1,
               bounds=dict(),
               values=dict(),
+              datafolder=None,
               **kwargs):
         
         """ Load any instrument response matrix. """
-    
+
+        if datafolder:
+            ARF_path = os.path.join( datafolder, ARF_path )
+            RMF_path = os.path.join( datafolder, RMF_path )
+
         # Open useful values in ARF/RMF    
         with fits.open( ARF_path ) as ARF_hdul:
             ARF_instr = ARF_hdul['SPECRESP'].header['INSTRUME']
@@ -129,7 +135,7 @@ class CustomInstrument(xpsi.Instrument):
                           doc=f'{RMF_instr} {alpha_name}',
                           symbol = r'$\alpha_{\rm INSTRUMENT}$'.replace('INSTRUMENT', RMF_instr),
                           value = values.get(alpha_name, 1.0 if bounds.get(alpha_name, None) is None else None))
-        print( RSP.shape , energy_edges.shape, channel_energy_edges.shape  )
+
         return cls(RSP,
                    energy_edges,
                    channels,

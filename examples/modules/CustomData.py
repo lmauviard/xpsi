@@ -1,4 +1,4 @@
-
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -13,7 +13,12 @@ class CustomData(xpsi.Data):
              n_phases=32, 
              channels=None, 
              phase_column='PULSE_PHASE',
-             channel_column='PI'):
+             channel_column='PI',
+             datafolder = None):
+        
+        # Add the path if required
+        if datafolder:
+            path = os.path.join( datafolder, path )
         
         # Check whether event file or PHA
         with fits.open( path ) as hdul:
@@ -31,7 +36,7 @@ class CustomData(xpsi.Data):
                  channel_column=channel_column)
         
         else:
-            raise IOError('HDUCLAS1 of Header does not match PHA or EVT files values.')
+            raise IOError('HDUCLAS1 of Header does not match PHA or EVT files values. Could not load.')
         
     @classmethod
     def from_evt(cls, path, 
@@ -104,14 +109,13 @@ class CustomData(xpsi.Data):
          # Get intrinsinc values
         first = 0
         last = max_channel - min_channel
-        phases = np.linspace(0.0, 1.0, num=2)
+        phases = np.array([0.0, 1.0])
 
         # Match channels
         channel_counts_map = dict(zip(channel_data, counts_data))
         if not all(ch in channel_counts_map for ch in channels):
-                raise ValueError("Not all channels exist in channel_data.")
-        counts = np.array( [channel_counts_map[ch] for ch in channels] )
-        counts = np.array( [counts] ).T
+            raise ValueError("Not all channels exist in channel_data.")
+        counts = np.array( [channel_counts_map[ch] for ch in channels] ).T
         
         Data = cls( counts,
                     channels=channels,
@@ -132,9 +136,14 @@ class CustomData(xpsi.Data):
 
     def spectra_support(self, n, source_exposure, smoothing=True):
 
-        # Get the spectrum
+        # Get the background spectrum with exposure and background scaling
         spectrum = self.counts.sum(axis=1)
-        support = np.array([spectrum-n*np.sqrt(spectrum),spectrum+n*np.sqrt(spectrum)])
+        spectrum *= ( source_exposure / self.exposure_time )
+        try:
+            spectrum *= self.backscal
+        except:
+            raise IOError
+        support = np.array([spectrum-n*np.sqrt(spectrum),spectrum+n*np.sqrt(spectrum)]).T
         support[support[:,0] < 0.0, 0] = 0.0
 
         # Apply support smoothing if one upper value is not defined
@@ -148,14 +157,7 @@ class CustomData(xpsi.Data):
                         support[i,1] = support[i-j,1]
                         break
 
-        # Apply exposure and background scaling
-        support *= ( source_exposure / self.exposure_time )
-        try:
-            support *= self.backscal
-        except:
-            raise IOError
-        
-        return support.T
+        return support
 
     def plot(self, num_rot = 2):
 
