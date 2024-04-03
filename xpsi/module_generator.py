@@ -1516,12 +1516,12 @@ bounds = dict({2} = parse_bounds(args.{0}_{2}_bounds,
                                   max_input=args.{0}_input_bounds[1],
                                   bounds=bounds,
                                   values=values,
-				  datafolder=args.{0}_data_path)
+				  datafolder=args.{0}_data_folder)
 
 {0}.data = CustomData.load(args.{0}_data_path,
                     n_phases=args.{0}_number_phase_bins,
                     channels={0}.instrument.channels,
-		    datafolder=args.{0}_data_path)
+		    datafolder=args.{0}_data_folder)
 
 # Look for background
 background_path = None
