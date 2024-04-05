@@ -75,7 +75,7 @@ class CustomData(xpsi.Data):
                                                  bins=[last+1, phases_borders])
 
         # Instatiate the class
-        return cls( counts_histogram,
+        return cls( counts_histogram.astype( dtype=np.double ),
                     channels=channels,
                     phases=phases_borders,
                     first=first,
@@ -93,7 +93,7 @@ class CustomData(xpsi.Data):
             spectrum = hdul['SPECTRUM'].data
 
         # Extract useful data
-        exposure = Header['EXPOSURE']
+        exposure = np.double( Header['EXPOSURE'] )
         channel_data = spectrum['CHANNEL']
         counts_data = spectrum['COUNTS']
 
@@ -115,7 +115,7 @@ class CustomData(xpsi.Data):
         channel_counts_map = dict(zip(channel_data, counts_data))
         if not all(ch in channel_counts_map for ch in channels):
             raise ValueError("Not all channels exist in channel_data.")
-        counts = np.array( [channel_counts_map[ch] for ch in channels] ).T
+        counts = np.array( [[float(channel_counts_map[ch]) for ch in channels]] , dtype=np.double).T
         
         Data = cls( counts,
                     channels=channels,
@@ -156,7 +156,9 @@ class CustomData(xpsi.Data):
                     elif i-j >= 0 and support[i-j,1] > 0.0:
                         support[i,1] = support[i-j,1]
                         break
-
+        
+        # Clean
+        support = np.ascontiguousarray( support, dtype=np.double )
         return support
 
     def plot(self, num_rot = 2):

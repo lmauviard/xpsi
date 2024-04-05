@@ -1507,8 +1507,8 @@ bounds = dict({2} = parse_bounds(args.{0}_{2}_bounds,
 # Look for background
 if args.{0}_background_path:
     background_path = args.{0}_background_path
-elif hasattr( {0}.data , 'backfile' ) and os.path.exists(os.path.join( os.path.dirname(args.{0}_data_path), {0}.data.backfile)):      
-    background_path = os.path.join( os.path.dirname(args.{0}_data_path), {0}.data.backfile)
+elif hasattr( {0}.data , 'backfile' ):      
+    background_path = os.path.join( args.{0}_data_folder, {0}.data.backfile)
 else:
     background_path = None
 
@@ -1517,7 +1517,7 @@ if isinstance(background_path,str):
     background_spectra = CustomData.load( background_path , 
                                           n_phases=args.{0}_number_phase_bins,
                                           channels={0}.instrument.channels)
-    support = background_spectra.spectra_support( args.{0}_background_prior_support_half_width, {0}.data.exposure )
+    support = background_spectra.spectra_support( args.{0}_background_prior_support_half_width, {0}.data.exposure_time )
 else:
     support = None
     '''.format(instrument,
@@ -2037,8 +2037,7 @@ write(r'{}.py'.format(os.path.join(args.module_directory_path, args.custom_signa
 
 # Add global_variables to Photosphere module
 module = (
-'''
-
+'''\n
     @property
     def global_variables(self):
         """ For interfacing with the image-plane signal simulator.

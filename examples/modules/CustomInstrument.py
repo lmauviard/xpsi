@@ -124,7 +124,7 @@ class CustomInstrument(xpsi.Instrument):
             print(f'Triming the response matrix because it contains columns with only 0 values.\n Now min_channel={channels[0]} and max_channel={channels[-1]}')
 
         # Get the edges of energies for both inputand channel
-        energy_edges = np.append( ARF['ENERG_LO'][inputs-1], ARF['ENERG_HI'][inputs[-1]-1])
+        energy_edges = np.append( ARF['ENERG_LO'][inputs-1], ARF['ENERG_HI'][inputs[-1]-1]).astype(dtype=np.double)
         channel_energy_edges = np.append(RMF_EBOUNDS['E_MIN'][channels],RMF_EBOUNDS['E_MAX'][channels[-1]])
 
         # Make the scaling
