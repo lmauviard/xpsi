@@ -65,4 +65,4 @@ class CustomPhotosphere(xpsi.Photosphere):
         # Read and set attributes
         logT, logg, mu, logE, buf = load_NSX_table( path )
         self._elsewhere_atmosphere = (logT, logg, mu, logE, buf)
-        
+

@@ -124,8 +124,7 @@ class CustomData(xpsi.Data):
                     last=last,
                     exposure_time=exposure)
         
-        # Add parameter for backscal
-        Data.backscal = Header['BACKSCAL']
+        # Add useful paths
         Data.ancrfile = Header['ANCRFILE']
         Data.respfile = Header['RESPFILE']
         if Header['HDUCLAS2'] == 'TOTAL':
@@ -134,15 +133,10 @@ class CustomData(xpsi.Data):
         return Data
          
 
-    def spectra_support(self, n, source_exposure, smoothing=True):
+    def spectra_support(self, n, smoothing=True):
 
-        # Get the background spectrum with exposure and background scaling
+        # Get the background spectrum
         spectrum = self.counts.sum(axis=1)
-        spectrum *= ( source_exposure / self.exposure_time )
-        try:
-            spectrum *= self.backscal
-        except:
-            raise IOError
         support = np.array([spectrum-n*np.sqrt(spectrum),spectrum+n*np.sqrt(spectrum)]).T
         support[support[:,0] < 0.0, 0] = 0.0
 

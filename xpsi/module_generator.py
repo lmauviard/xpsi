@@ -341,7 +341,7 @@ parser.add_argument('--custom-prior-module',
 
 parser.add_argument('--custom-background-module',
                     type=str,
-                    default='CustomBackground',
+                    default=None,
                     help='Name of the module containing the CustomBackground subclass(es).')
 
 if __name__ == '__main__':
@@ -1345,31 +1345,32 @@ elif args.background_shared_class:
 elif not args.background_shared_class:
     args.background_shared_parameters = False
 
-if args.background_shared_class:
-    module += (
-    '''
-if __name__ == '__main__':
-    from {0} import CustomBackground
-else:
-    from .{0} import CustomBackground
-    '''.format(args.custom_background_module)
-    )
-elif args.background_shared_class:
-    for _instrument in args.instruments:
+if args.custom_background_module is not None:
+    if args.background_shared_class:
         module += (
         '''
-if __name__ == '__main__':
-    from {0} import {1}_CustomBackground
-        '''.format(args.custom_background_module,
-                   _instrument)
+    if __name__ == '__main__':
+        from {0} import CustomBackground
+    else:
+        from .{0} import CustomBackground
+        '''.format(args.custom_background_module)
         )
-        module += (
-        '''
-else:
-    from .{0} import {1}_CustomBackground
-        '''.format(args.custom_background_module,
-                   _instrument)
-        )
+    elif args.background_shared_class:
+        for _instrument in args.instruments:
+            module += (
+            '''
+    if __name__ == '__main__':
+        from {0} import {1}_CustomBackground
+            '''.format(args.custom_background_module,
+                    _instrument)
+            )
+            module += (
+            '''
+    else:
+        from .{0} import {1}_CustomBackground
+            '''.format(args.custom_background_module,
+                    _instrument)
+            )
 
 module += (
 '''
@@ -1514,10 +1515,10 @@ else:
 
 # Make the support accordingly
 if isinstance(background_path,str):
-    background_spectra = CustomData.load( background_path , 
+    {0}.spectra = CustomData.load( background_path , 
                                           n_phases=args.{0}_number_phase_bins,
                                           channels={0}.instrument.channels)
-    support = background_spectra.spectra_support( args.{0}_background_prior_support_half_width, {0}.data.exposure_time )
+    support = {0}.spectra.spectra_support( args.{0}_background_prior_support_half_width )
 else:
     support = None
     '''.format(instrument,
@@ -2037,7 +2038,7 @@ write(r'{}.py'.format(os.path.join(args.module_directory_path, args.custom_signa
 
 # Add global_variables to Photosphere module
 module = (
-'''\n
+'''
     @property
     def global_variables(self):
         """ For interfacing with the image-plane signal simulator.
@@ -3187,4 +3188,5 @@ else:
     for _instrument in args.instrument:
         _write_background_class(_instrument)
 
-write(r'{}.py'.format(os.path.join(args.module_directory_path, args.custom_background_module)), module)
+if args.custom_background_module is not None:
+    write(r'{}.py'.format(os.path.join(args.module_directory_path, args.custom_background_module)), module)
