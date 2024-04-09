@@ -309,6 +309,11 @@ parser.add_argument('--main-module',
                     default='main',
                     help='Name of the main module.')
 
+parser.add_argument('--custom-modules-path',
+		    type=str,
+		    default='',
+                    help='Path to append in front of all the following custom data path.')
+
 parser.add_argument('--custom-data-path',
                     type=str,
                     default='CustomData',
@@ -1518,7 +1523,7 @@ if isinstance(background_path,str):
     {0}.spectra = CustomData.load( background_path , 
                                           n_phases=args.{0}_number_phase_bins,
                                           channels={0}.instrument.channels)
-    support = {0}.spectra.spectra_support( args.{0}_background_prior_support_half_width )
+    support = {0}.spectra.spectra_support( args.{0}_background_prior_support_half_width, source_backscal={0}.data.backscal )
 else:
     support = None
     '''.format(instrument,
@@ -2116,7 +2121,7 @@ else:
                "ref_p['super_temperature']" if 'DT' in args.hot_region_model[0] else 0.0,
                "ref_p['cede_temperature']" if 'DT' in args.hot_region_model[0] else "ref_p['super_temperature']")
     )
-shutil.copy( args.custom_photosphere_path, os.path.join(args.module_directory_path, 'CustomPhotosphere.py' ) )
+shutil.copy( os.path.join( args.custom_modules_path , args.custom_photosphere_path), os.path.join(args.module_directory_path, 'CustomPhotosphere.py' ) )
 write(r'{}.py'.format(os.path.join(args.module_directory_path, 'CustomPhotosphere')), module, overwrite=False)
 
 # Creating Prior module
@@ -3091,15 +3096,15 @@ write(r'{}.py'.format(os.path.join(args.module_directory_path, args.custom_prior
 
 # Creating Data module
 # Nothing needs to be specified, can be taken from a reference file
-shutil.copy( args.custom_data_path, os.path.join(args.module_directory_path, 'CustomData.py' ) )
+shutil.copy( os.path.join( args.custom_modules_path, args.custom_data_path), os.path.join(args.module_directory_path, 'CustomData.py' ) )
 
 # Creating Instrument module
 # Nothing needs to be specified, can be taken from a reference file
-shutil.copy( args.custom_instrument_path, os.path.join(args.module_directory_path, 'CustomInstrument.py' ) )
+shutil.copy( os.path.join( args.custom_modules_path, args.custom_instrument_path), os.path.join(args.module_directory_path, 'CustomInstrument.py' ) )
 
 # Creating Interstellar module
 # Nothing needs to be specified, can be taken from a reference file
-shutil.copy( args.custom_interstellar_path, os.path.join(args.module_directory_path, 'CustomInterstellar.py' ) )
+shutil.copy( os.path.join( args.custom_modules_path, args.custom_interstellar_path), os.path.join(args.module_directory_path, 'CustomInterstellar.py' ) )
 
 if not args.background_model:
     sys.exit(0)
