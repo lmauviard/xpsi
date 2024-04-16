@@ -63,7 +63,8 @@ class CustomData(xpsi.Data):
         else:
             min_channel = channels[0]
             max_channel = channels[-1]
-            
+        channel_borders = np.arange(min_channel, max_channel+2)-0.5
+
          # Get intrinsinc values
         first = 0
         last = max_channel - min_channel
@@ -72,7 +73,7 @@ class CustomData(xpsi.Data):
         # Make the 2D histogram
         mask = [ ch>=min_channel and ch<=max_channel for ch in channel_data ]
         counts_histogram, _, _ = np.histogram2d( channel_data[mask] , phases_data[mask], 
-                                                 bins=[last+1, phases_borders])
+                                                 bins=[channel_borders, phases_borders])
 
         # Instatiate the class
         return cls( counts_histogram.astype( dtype=np.double ),
@@ -122,7 +123,7 @@ class CustomData(xpsi.Data):
                     phases=phases,
                     first=first,
                     last=last,
-                    exposure_time=exposure)
+                    exposure_time=exposure )
         
         # Add useful paths
         Data.backscal = Header['BACKSCAL']

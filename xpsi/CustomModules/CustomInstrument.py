@@ -136,9 +136,15 @@ class CustomInstrument(xpsi.Instrument):
                           symbol = r'$\alpha_{\rm INSTRUMENT}$'.replace('INSTRUMENT', RMF_instr),
                           value = values.get(alpha_name, 1.0 if bounds.get(alpha_name, None) is None else None))
 
-        return cls(RSP,
-                   energy_edges,
-                   channels,
-                   channel_energy_edges,
-                   alpha, **kwargs)
+        Instrument = cls(RSP,
+                         energy_edges,
+                         channels,
+                         channel_energy_edges,
+                         alpha, **kwargs)
+        
+        # Add ARF and RMF for plotting
+        Instrument.RMF = RMF[min_channel:max_channel+1,min_input-1:max_input][~empty_channels][:,~empty_inputs]
+        Instrument.ARF = ARF_area[min_input-1:max_input][~empty_inputs]
+
+        return Instrument
     

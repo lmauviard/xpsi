@@ -295,43 +295,34 @@ parser.add_argument('--print-MPI-rank',
                     comment_line_above='miscellaneous flags',
                     empty_lines_below=2)
 
-parser.add_argument('--config-path',
-                    type=str,
-                    help='If main module is imported, use this argument to specify the relative or absolute path to the configuration file.',
-                    comment_line_above='write flags')
-
-parser.add_argument('--module-directory-path',
-                    type=str,
-                    help='Absolute path to directory to write module files to.')
-
 parser.add_argument('--main-module',
                     type=str,
                     default='main',
                     help='Name of the main module.')
 
 parser.add_argument('--custom-modules-path',
-		    type=str,
-		    default='',
+		            type=str,
+		            default='',
                     help='Path to append in front of all the following custom data path.')
 
 parser.add_argument('--custom-data-path',
                     type=str,
-                    default='CustomData',
+                    default='CustomData.py',
                     help='Path to the module containing the CustomData subclass to be used.')
 
 parser.add_argument('--custom-instrument-path',
                     type=str,
-                    default='CustomInstrument',
+                    default='CustomInstrument.py',
                     help='Path to the module containing the CustomInstrument subclass to be used.')
 
 parser.add_argument('--custom-photosphere-path',
                     type=str,
-                    default='CustomPhotosphere',
+                    default='CustomPhotosphere.py',
                     help='Path to the module containing the CustomPhotosphere subclass to be used.')
 
 parser.add_argument('--custom-interstellar-path',
                     type=str,
-                    default='CustomInterstellar',
+                    default='CustomInterstellar.py',
                     help='Path to the module containing the CustomInterstellar subclass.')
 
 parser.add_argument('--custom-signal-module',
@@ -583,7 +574,7 @@ parser = ArgumentParserCustom(
 '''.format(args.model,
            _telescopes,
            args.source,
-           args.config_path)
+           'config.ini')
 )
 
 module += (
@@ -1276,32 +1267,30 @@ module += (
 '''
 import xpsi
 
-if __name__ == '__main__':
-    if xpsi._verbose:
-        print('Parsing configuration file...')
-    args, _ = parser.parse_known_args()
-    if xpsi._verbose:
-        print('Configuration file parsed.')
-else:
-    if xpsi._verbose:
-        print('Parsing configuration file...')
-    args, _ = parser.parse_known_args(['@{}'])
-    if xpsi._verbose:
-        print('Configuration file parsed.')
+if xpsi._verbose:
+    print('Parsing configuration file...')
+args, _ = parser.parse_known_args()
+if xpsi._verbose:
+    print('Configuration file parsed.')
 
-'''.format(args.config_path)
+'''
 )
 
 module += (
 '''
 import os
-
+import sys
 import numpy as np
 import math
 
+sys.path.append('modules')
+sys.path.append('../modules')
+sys.path.append('{0}/modules')
+sys.path.append('../{0}/modules')
+
 from xpsi.Parameter import Derive
 from xpsi import HotRegions
-'''
+'''.format(args.model)
 )
 
 if args.print_MPI_rank:
@@ -1309,31 +1298,18 @@ if args.print_MPI_rank:
 
 module += (
 '''
-if __name__ == '__main__':
-    from {0} import CustomData
-    from {1} import CustomInstrument
-    from {2} import CustomSignal
-    from {3} import CustomInterstellar
+from {0} import CustomData
+from {1} import CustomInstrument
+from {2} import CustomSignal
+from {3} import CustomInterstellar
 
-    try:
-        from {4} import CustomPhotosphere
-    except ImportError:
-        from xpsi import Photosphere as CustomPhotosphere
+try:
+    from {4} import CustomPhotosphere
+except ImportError:
+    from xpsi import Photosphere as CustomPhotosphere
 
-    from {5} import CustomPrior
+from {5} import CustomPrior
 
-else:
-    from .{0} import CustomData
-    from .{1} import CustomInstrument
-    from .{2} import CustomSignal
-    from .{3} import CustomInterstellar
-
-    try:
-        from .{4} import CustomPhotosphere
-    except ImportError:
-        from xpsi import Photosphere as CustomPhotosphere
-
-    from .{5} import CustomPrior
 '''.format('CustomData',
            'CustomInstrument',
            args.custom_signal_module,
@@ -1354,11 +1330,7 @@ if args.custom_background_module is not None:
     if args.background_shared_class:
         module += (
         '''
-    if __name__ == '__main__':
-        from {0} import CustomBackground
-    else:
-        from .{0} import CustomBackground
-        '''.format(args.custom_background_module)
+    from {0} import CustomBackground'''.format(args.custom_background_module)
         )
     elif args.background_shared_class:
         for _instrument in args.instruments:
@@ -1959,13 +1931,15 @@ else:
 '''
 )
 
-if not os.path.isdir(args.module_directory_path):
-    os.mkdir(args.module_directory_path)
+module_directory_path = os.path.join( args.model , 'modules')
+if not os.path.isdir(module_directory_path):
+    os.makedirs(module_directory_path)
 
-write(r'{}.py'.format(os.path.join(args.module_directory_path,
+write(r'{}.py'.format(os.path.join(module_directory_path,
                                    args.main_module)), module)
 
-write(r'{}.py'.format(os.path.join(args.module_directory_path, '__init__')), '')
+write(r'{}.py'.format(os.path.join(module_directory_path, '__init__')), '')
+
 
 # Creating Signal module
 module = (
@@ -2039,7 +2013,7 @@ class CustomSignal(xpsi.Signal):
            'None' if not args.background_model else 'self.background.registered_background')
 )
 
-write(r'{}.py'.format(os.path.join(args.module_directory_path, args.custom_signal_module)), module)
+write(r'{}.py'.format(os.path.join(module_directory_path, args.custom_signal_module)), module)
 
 # Add global_variables to Photosphere module
 module = (
@@ -2121,8 +2095,8 @@ else:
                "ref_p['super_temperature']" if 'DT' in args.hot_region_model[0] else 0.0,
                "ref_p['cede_temperature']" if 'DT' in args.hot_region_model[0] else "ref_p['super_temperature']")
     )
-shutil.copy( os.path.join( args.custom_modules_path , args.custom_photosphere_path), os.path.join(args.module_directory_path, 'CustomPhotosphere.py' ) )
-write(r'{}.py'.format(os.path.join(args.module_directory_path, 'CustomPhotosphere')), module, overwrite=False)
+shutil.copy( os.path.join( args.custom_modules_path , args.custom_photosphere_path), os.path.join(module_directory_path, 'CustomPhotosphere.py' ) )
+write(r'{}.py'.format(os.path.join(module_directory_path, 'CustomPhotosphere')), module, overwrite=False)
 
 # Creating Prior module
 module = (
@@ -2290,18 +2264,10 @@ parser.add_argument('--{0}-super-temperature-prior',
 
     add_cede_temperature_prior(1)
 
-
 module += (
 '''
-if __name__ == '__main__':
-    args, _ = parser.parse_known_args()
-else:
-    args, _ = parser.parse_known_args(['@{}'])
-'''.format(args.config_path)
-)
+args, _ = parser.parse_known_args()
 
-module += (
-'''
 import numpy as np
 import math
 
@@ -2319,9 +2285,7 @@ if args.prior_import_statements is not None:
 if args.prior_global_statements is not None:
     for global_statement in args.prior_global_statements:
         exec(global_statement)
-'''.format(args.model,
-           _telescopes,
-           args.source)
+'''
 )
 
 module += (
@@ -3092,19 +3056,19 @@ module += (
 '''
 )
 
-write(r'{}.py'.format(os.path.join(args.module_directory_path, args.custom_prior_module)), module)
+write(r'{}.py'.format(os.path.join(module_directory_path, args.custom_prior_module)), module)
 
 # Creating Data module
 # Nothing needs to be specified, can be taken from a reference file
-shutil.copy( os.path.join( args.custom_modules_path, args.custom_data_path), os.path.join(args.module_directory_path, 'CustomData.py' ) )
+shutil.copy( os.path.join( args.custom_modules_path, args.custom_data_path), os.path.join(module_directory_path, 'CustomData.py' ) )
 
 # Creating Instrument module
 # Nothing needs to be specified, can be taken from a reference file
-shutil.copy( os.path.join( args.custom_modules_path, args.custom_instrument_path), os.path.join(args.module_directory_path, 'CustomInstrument.py' ) )
+shutil.copy( os.path.join( args.custom_modules_path, args.custom_instrument_path), os.path.join(module_directory_path, 'CustomInstrument.py' ) )
 
 # Creating Interstellar module
 # Nothing needs to be specified, can be taken from a reference file
-shutil.copy( os.path.join( args.custom_modules_path, args.custom_interstellar_path), os.path.join(args.module_directory_path, 'CustomInterstellar.py' ) )
+shutil.copy( os.path.join( args.custom_modules_path, args.custom_interstellar_path), os.path.join(module_directory_path, 'CustomInterstellar.py' ) )
 
 if not args.background_model:
     sys.exit(0)
@@ -3194,4 +3158,4 @@ else:
         _write_background_class(_instrument)
 
 if args.custom_background_module is not None:
-    write(r'{}.py'.format(os.path.join(args.module_directory_path, args.custom_background_module)), module)
+    write(r'{}.py'.format(os.path.join(module_directory_path, args.custom_background_module)), module)
