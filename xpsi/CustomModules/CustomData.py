@@ -133,30 +133,33 @@ class CustomData(xpsi.Data):
             Data.backfile = Header['BACKFILE']
 
         return Data
-         
+        
 
     def spectra_support(self, n, source_backscal=None, smoothing=True):
 
-        # Get the background spectrum
-        spectrum = self.counts.sum(axis=1) / self.exposure_time
-        if source_backscal is not None:
-            spectrum *= ( source_backscal / self.backscal )
-        else:
-            print('No BACKSCAL for source was given. Considering it equal to background BACKSCAL')
-        support = np.array([spectrum-n*np.sqrt(spectrum),spectrum+n*np.sqrt(spectrum)]).T
-        support[support[:,0] < 0.0, 0] = 0.0
+        # Get the background counts prior
+        counts = self.counts.sum(axis=1)
+        counts_support = np.array([counts-n*np.sqrt(counts),counts+n*np.sqrt(counts)]).T
+        counts_support[counts_support[:,0] < 0.0, 0] = 0.0
 
         # Apply support smoothing if one upper value is not defined
-        for i in range(support.shape[0]):
-            if support[i,1] == 0.0 and smoothing:
-                for j in range(1, support.shape[0]):
-                    if i+j < support.shape[0] and support[i+j,1] > 0.0:
-                        support[i,1] = support[i+j,1]
+        for i in range(counts_support.shape[0]):
+            if counts_support[i,1] == 0.0 and smoothing:
+                for j in range(1, counts_support.shape[0]):
+                    if i+j < counts_support.shape[0] and counts_support[i+j,1] > 0.0:
+                        counts_support[i,1] = counts_support[i+j,1]
                         break
-                    elif i-j >= 0 and support[i-j,1] > 0.0:
-                        support[i,1] = support[i-j,1]
+                    elif i-j >= 0 and counts_support[i-j,1] > 0.0:
+                        counts_support[i,1] = counts_support[i-j,1]
                         break
         
+        # Apply the scaling
+        count_rate_support = counts_support / self.exposure_time
+        try:
+            count_rate_support *= ( source_backscal / self.backscal )
+        except:
+            raise IOError('No BACKSCAL was provided for source. Could not compute the support of the spectrum')
+
         # Clean
         support = np.ascontiguousarray( support, dtype=np.double )
         return support

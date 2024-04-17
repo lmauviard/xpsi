@@ -1492,12 +1492,12 @@ else:
 
 # Make the support accordingly
 if isinstance(background_path,str):
-    {0}.spectra = CustomData.load( background_path , 
+    {0}.background_spectra = CustomData.load( background_path , 
                                           n_phases=args.{0}_number_phase_bins,
                                           channels={0}.instrument.channels)
-    support = {0}.spectra.spectra_support( args.{0}_background_prior_support_half_width, source_backscal={0}.data.backscal )
+    {0}.background_support = {0}.background_spectra.spectra_support( args.{0}_background_prior_support_half_width, source_backscal={0}.data.backscal )
 else:
-    support = None
+    {0}.background_support = None
     '''.format(instrument,
                args.instrument,
                'energy_independent_effective_area_scaling_factor')
@@ -1506,14 +1506,14 @@ else:
     if not args.background_model:
         module += (
         '''
-{0}.background = None
+{0}.background_model = None
         '''.format(instrument)
         )
     else:
         if args.background_shared_instance:
             module += (
             '''
-{0}.background = background
+{0}.background_model = background
             '''.format(instrument)
             )
         elif args.background_shared_class:
@@ -1543,13 +1543,13 @@ values = {}
                     '''
 values['{0}'] = derived_parameter(lambda x: x,
                                   '{0}',
-                                  {1}.background)
+                                  {1}.background_model)
                     '''.format(_parameter, args.instrument[0])
                     )
 
             module += (
             '''
-{0}.background = CustomBackground(bounds=bounds, values=values)
+{0}.background_model = CustomBackground(bounds=bounds, values=values)
             '''.format(instrument)
             )
         elif not args.background_shared_class:
@@ -1573,7 +1573,7 @@ values['{0}'] = parse_value(args.{0}_value)
 
             module += (
             '''
-{0}.background = {0}_CustomBackground(bound=bounds, values=values)
+{0}.background_model = {0}_CustomBackground(bound=bounds, values=values)
             '''
             )
 
@@ -1596,7 +1596,7 @@ bounds = dict(phase_shift = parse_bounds(args.{0}_phase_shift_bounds,
 {0}.signal = CustomSignal(data = {0}.data,
                           instrument = {0}.instrument,
                           interstellar = interstellar,
-                          background = {0}.background,
+                          background = {0}.background_model,
                           cache = False if __name__ == '__main__' else True,
                           bounds = bounds,
                           values = values,
@@ -1604,7 +1604,7 @@ bounds = dict(phase_shift = parse_bounds(args.{0}_phase_shift_bounds,
                           epsrel = 1.0e-8,
                           epsilon = 1.0e-3,
                           sigmas = 10.0,
-                          support = support,
+                          support = {0}.support,
                           prefix = '{0}')
 
 signals[0].append({0}.signal)
