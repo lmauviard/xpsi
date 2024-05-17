@@ -164,7 +164,7 @@ class CustomData(xpsi.Data):
         count_rate_support = np.ascontiguousarray( count_rate_support, dtype=np.double )
         return count_rate_support
 
-    def plot(self, num_rot = 2):
+    def plot(self, num_rot = 2, dpi=200, colormap='inferno'):
 
         # Get the counts
         counts_list = [ self.counts for i in range(num_rot) ]
@@ -179,21 +179,25 @@ class CustomData(xpsi.Data):
         ax1 = axs['A']
         ax1.step( phases, counts.sum(axis=0) , color='black')
         ax1.set_ylabel('Counts')
-        ax1.vlines( 1. , ymin=np.min(counts.sum(axis=0)), ymax =np.max(counts.sum(axis=0)), ls='--', color='blue' )
 
         ax2 = axs['B']
-        ax2.pcolormesh( phases, self.channels , counts)
+        im = ax2.pcolormesh( phases, self.channels , counts, cmap=colormap)
         ax2.sharex( ax1 )
-        ax2.set_xlabel('Phase bins')
+        ax2.set_xlabel(r'Phase $\phi$ [cycles]')
         ax2.set_ylabel('PI channel')
         ax2.set_yscale('log')
 
         ax3 = axs['C']
         ax3.sharey( ax2 )
         ax3.get_yaxis().set_visible(False)
-        ax3.step( counts.sum(axis=1), self.channels , color='black')
+        ax3.step( counts.sum(axis=1)/2, self.channels , color='black')
         ax3.set_yscale('log')
         ax3.set_xlabel('Counts per channel')
+
+        plt.colorbar( im , ax=ax3 , label='Counts')
+
+        fig.set_dpi(dpi)
+        fig.tight_layout()
 
     def plot_spectra(self, num_rot=2):
 
