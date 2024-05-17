@@ -1235,7 +1235,7 @@ parser.add_argument('--number-live-points',
                     help='Number of live points in nested sampling process.')
 
 parser.add_argument('--hypervolume-expansion-factor',
-                    type=float,
+                    type=str,
                     default=10.0,
                     help='Factor by which to expand the hyperellisoid union that approximately minimally bounds the set of live points.')
 
@@ -1604,7 +1604,7 @@ bounds = dict(phase_shift = parse_bounds(args.{0}_phase_shift_bounds,
                           epsrel = 1.0e-8,
                           epsilon = 1.0e-3,
                           sigmas = 10.0,
-                          support = {0}.support,
+                          support = {0}.background_support,
                           prefix = '{0}')
 
 signals[0].append({0}.signal)
@@ -1904,7 +1904,7 @@ if __name__ == '__main__':
 
         if args.sample_files_root is None:
             args.sample_files_root = 'nlive{:d}_expf{:.1f}_{}_{}_tol{:.1g}'.format(args.number_live_points,
-                                                                                   args.hypervolume_expansion_factor,
+                                                                                   eval( args.hypervolume_expansion_factor ),
                                                                                    'noCONST' if not args.constant_efficiency_variant else 'CONST',
                                                                                    'noMM' if not args.mode_separation_variant else 'MM',
                                                                                    args.estimated_remaining_log_evidence)
@@ -1915,7 +1915,7 @@ if __name__ == '__main__':
                           'outputfiles_basename': os.path.join(args.sample_files_directory_path, args.sample_files_root),
                           'n_iter_before_update': args.number_iterations_per_write,
                           'n_live_points': args.number_live_points,
-                          'sampling_efficiency': 1.0 / args.hypervolume_expansion_factor,
+                          'sampling_efficiency': 1.0 / eval( args.hypervolume_expansion_factor ),
                           'const_efficiency_mode': args.constant_efficiency_variant,
                           'wrapped_params': wrapped_params,
                           'evidence_tolerance': args.estimated_remaining_log_evidence,
