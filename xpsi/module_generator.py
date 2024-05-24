@@ -249,6 +249,11 @@ parser.add_argument('--prefix',
                     action='append',
                     help='Specify the prefixes for hot region parameter naming.')
 
+parser.add_argument('--sini',
+                    action='store_true',
+                    help='Should the prior on inclination be given from the value of the sinus instead ?',
+                    comment=True)
+
 parser.add_argument('--hot-atmosphere-model',
                     type=str,
                     help='Name of atmosphere model within hot regions, e.g., blackbody or NSX-H.')
@@ -802,25 +807,25 @@ parser.add_argument('--radius-value',
                     comment=True,
                     empty_lines_below=2)
 
-parser.add_argument('--cos-inclination-bounds',
+parser.add_argument('--{5}-inclination-bounds',
                     type=str,
                     nargs=2,
                     action=CompileAction,
-                    help='Bounds of cosine of Earth colatitude (inclination) w.r.t to stellar rotation axis. {1}',
+                    help='Bounds of {5} of Earth colatitude (inclination) w.r.t to stellar rotation axis. {1}',
                     comment=True,
                     comment_line_above='rule')
 
-parser.add_argument('--cos-inclination-prior',
+parser.add_argument('--{5}-inclination-prior',
                     type=str,
                     nargs='*',
                     action=NullAction,
-                    help='Prior inverse CDF of cosine of Earth inclination to stellar spin axis. {4}',
+                    help='Prior inverse CDF of {5} of Earth inclination to stellar spin axis. {4}',
                     comment=True)
 
-parser.add_argument('--cos-inclination-value',
+parser.add_argument('--{5}-inclination-value',
                     type=str,
                     action=CompileAction,
-                    help='Value of cosine of Earth colatitude (inclination) w.r.t to stellar rotation axis. {2}',
+                    help='Value of {5} of Earth colatitude (inclination) w.r.t to stellar rotation axis. {2}',
                     comment=True,
                     empty_lines_below=2)
 
@@ -850,7 +855,8 @@ parser.add_argument('--distance-value',
            _bounds_default_notice,
            _value_notice,
            _derived_notice,
-           _CDF_notice)
+           _CDF_notice,
+           'sin' if args.sini else 'cos')
 )
 
 for _h, _m in list(zip(args.prefix, args.hot_region_model))[:1 if (len(args.hot_region_model) == 1 or args.antipodal_reflection_symmetry) else 2]:
@@ -1612,26 +1618,62 @@ signals[0].append({0}.signal)
                args.instrument)
     )
 
-module += (
-'''
-bounds = dict(mass = parse_bounds(args.mass_bounds,
-                                  args.mass_value),
-              radius = parse_bounds(args.radius_bounds,
-                                    args.radius_value),
-              distance = parse_bounds(args.distance_bounds,
-                                      args.distance_value),
-              cos_inclination = parse_bounds(args.cos_inclination_bounds,
-                                             args.cos_inclination_value))
+if args.sini:
+    module += (
+    '''
+    sini = xpsi.Parameter('sin_inclination',
+                         strict_bounds = (-1.0, 1.0),
+                         bounds = parse_bounds(args.sin_inclination_bounds,
+                                               args.sin_inclination_bounds),
+                         doc = 'Sine of Earth inclination to rotation axis',
+                         symbol = r'$\sin(i)$',
+                         value = parse_value(args.sin_inclination_value))
 
-values = dict(mass = parse_value(args.mass_value),
-              radius = parse_value(args.radius_value),
-              distance = parse_value(args.distance_value),
-              cos_inclination = parse_value(args.cos_inclination_value),
-              frequency = {0})
+    class sini_to_cosi(xpsi.Derive):
+        def __init__(self, sini):
+            self.sini = sini
 
-spacetime = xpsi.Spacetime(bounds, values)
-'''.format(str(args.frequency))
-)
+        def __call__(self, caller = None):
+            return np.sqrt( 1 - self.sini.evaluate()**2 )
+
+    bounds = dict(mass = parse_bounds(args.mass_bounds,
+                                    args.mass_value),
+                radius = parse_bounds(args.radius_bounds,
+                                        args.radius_value),
+                distance = parse_bounds(args.distance_bounds,
+                                        args.distance_value),
+                cos_inclination = sini_to_cosi(sini))
+
+    values = dict(mass = parse_value(args.mass_value),
+                radius = parse_value(args.radius_value),
+                distance = parse_value(args.distance_value),
+                cos_inclination = None,
+                frequency = {0})
+
+    spacetime = xpsi.Spacetime(bounds, values)
+    '''.format(str(args.frequency))
+    )
+else:
+    module += (
+    '''
+    bounds = dict(mass = parse_bounds(args.mass_bounds,
+                                    args.mass_value),
+                radius = parse_bounds(args.radius_bounds,
+                                        args.radius_value),
+                distance = parse_bounds(args.distance_bounds,
+                                        args.distance_value),
+                cos_inclination = parse_bounds(args.cos_inclination_bounds,
+                                                args.cos_inclination_value))
+
+    values = dict(mass = parse_value(args.mass_value),
+                radius = parse_value(args.radius_value),
+                distance = parse_value(args.distance_value),
+                cos_inclination = parse_value(args.cos_inclination_value),
+                frequency = {0})
+
+    spacetime = xpsi.Spacetime(bounds, values)
+    '''.format(str(args.frequency))
+    )
 
 def get_bounds_and_values(prefix, model):
     global module
