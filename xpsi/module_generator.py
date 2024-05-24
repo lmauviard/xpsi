@@ -1621,57 +1621,57 @@ signals[0].append({0}.signal)
 if args.sini:
     module += (
     '''
-    sini = xpsi.Parameter('sin_inclination',
-                         strict_bounds = (-1.0, 1.0),
-                         bounds = parse_bounds(args.sin_inclination_bounds,
-                                               args.sin_inclination_bounds),
-                         doc = 'Sine of Earth inclination to rotation axis',
-                         symbol = r'$\sin(i)$',
-                         value = parse_value(args.sin_inclination_value))
+sini = xpsi.Parameter('sin_inclination',
+                        strict_bounds = (-1.0, 1.0),
+                        bounds = parse_bounds(args.sin_inclination_bounds,
+                                            args.sin_inclination_bounds),
+                        doc = 'Sine of Earth inclination to rotation axis',
+                        symbol = r'$\sin(i)$',
+                        value = parse_value(args.sin_inclination_value))
 
-    class sini_to_cosi(xpsi.Derive):
-        def __init__(self, sini):
-            self.sini = sini
+class sini_to_cosi(xpsi.Derive):
+    def __init__(self, sini):
+        self.sini = sini
 
-        def __call__(self, caller = None):
-            return np.sqrt( 1 - self.sini.evaluate()**2 )
+    def __call__(self, caller = None):
+        return np.sqrt( 1 - self.sini.evaluate()**2 )
 
-    bounds = dict(mass = parse_bounds(args.mass_bounds,
-                                    args.mass_value),
-                radius = parse_bounds(args.radius_bounds,
-                                        args.radius_value),
-                distance = parse_bounds(args.distance_bounds,
-                                        args.distance_value),
-                cos_inclination = sini_to_cosi(sini))
+bounds = dict(mass = parse_bounds(args.mass_bounds,
+                                args.mass_value),
+            radius = parse_bounds(args.radius_bounds,
+                                    args.radius_value),
+            distance = parse_bounds(args.distance_bounds,
+                                    args.distance_value),
+            cos_inclination = None)
 
-    values = dict(mass = parse_value(args.mass_value),
-                radius = parse_value(args.radius_value),
-                distance = parse_value(args.distance_value),
-                cos_inclination = None,
-                frequency = {0})
+values = dict(mass = parse_value(args.mass_value),
+            radius = parse_value(args.radius_value),
+            distance = parse_value(args.distance_value),
+            cos_inclination = sini_to_cosi(sini),
+            frequency = {0})
 
-    spacetime = xpsi.Spacetime(bounds, values)
+spacetime = xpsi.Spacetime(bounds, values)
     '''.format(str(args.frequency))
     )
 else:
     module += (
     '''
-    bounds = dict(mass = parse_bounds(args.mass_bounds,
-                                    args.mass_value),
-                radius = parse_bounds(args.radius_bounds,
-                                        args.radius_value),
-                distance = parse_bounds(args.distance_bounds,
-                                        args.distance_value),
-                cos_inclination = parse_bounds(args.cos_inclination_bounds,
-                                                args.cos_inclination_value))
+bounds = dict(mass = parse_bounds(args.mass_bounds,
+                                args.mass_value),
+            radius = parse_bounds(args.radius_bounds,
+                                    args.radius_value),
+            distance = parse_bounds(args.distance_bounds,
+                                    args.distance_value),
+            cos_inclination = parse_bounds(args.cos_inclination_bounds,
+                                            args.cos_inclination_value))
 
-    values = dict(mass = parse_value(args.mass_value),
-                radius = parse_value(args.radius_value),
-                distance = parse_value(args.distance_value),
-                cos_inclination = parse_value(args.cos_inclination_value),
-                frequency = {0})
+values = dict(mass = parse_value(args.mass_value),
+            radius = parse_value(args.radius_value),
+            distance = parse_value(args.distance_value),
+            cos_inclination = parse_value(args.cos_inclination_value),
+            frequency = {0})
 
-    spacetime = xpsi.Spacetime(bounds, values)
+spacetime = xpsi.Spacetime(bounds, values)
     '''.format(str(args.frequency))
     )
 
