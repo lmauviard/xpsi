@@ -1633,8 +1633,9 @@ class sini_to_cosi(xpsi.Derive):
     def __init__(self, sini):
         self.sini = sini
 
-    def __call__(self, caller = None):
-        return np.sqrt( 1 - self.sini.evaluate()**2 )
+    def __call__(self, boundto, caller = None):
+        sini = self.sini.evaluate()
+        return np.sqrt( 1 - sini**2 )
 
 bounds = dict(mass = parse_bounds(args.mass_bounds,
                                 args.mass_value),
@@ -1651,7 +1652,9 @@ values = dict(mass = parse_value(args.mass_value),
             frequency = {0})
 
 spacetime = xpsi.Spacetime(bounds, values)
-    '''.format(str(args.frequency))
+spacetime.merge(sini)
+
+'''.format(str(args.frequency))
     )
 else:
     module += (
