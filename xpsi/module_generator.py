@@ -2289,11 +2289,11 @@ parser.add_argument('--distance-prior',
                     action=CompileAction,
                     help='Prior inverse CDF of Earth distance (kpc). {1}')
 
-parser.add_argument('--cos-inclination-prior',
+parser.add_argument('--{2}-inclination-prior',
                     type=str,
                     nargs='*',
                     action=CompileAction,
-                    help='Prior inverse CDF of cosine of Earth inclination to stellar spin axis. {1}')
+                    help='Prior inverse CDF of {2} of Earth inclination to stellar spin axis. {1}')
 
 parser.add_argument('--neutral-hydrogen-column-density-prior',
                     type=str,
@@ -2307,7 +2307,8 @@ parser.add_argument('--{0}-super-temperature-prior',
                     action=CompileAction,
                     help='Prior inverse CDF of hot-region {0} superseding region log10(temperature [K]). {1}')
 '''.format(args.prefix[0],
-           _CDF_notice)
+           _CDF_notice,
+           'sin' if args.sini else 'cos')
 )
 
 if args.background_model:
@@ -2396,14 +2397,14 @@ module += (
 class CustomPrior(xpsi.Prior):
     """ A joint prior PDF. """
 
-    __derived_names__ = ['compactness']
+    __derived_names__ = ['compactness'{0}]
 
     __draws_from_support__ = 4
 
     def __init__(self):
 
         super(CustomPrior, self).__init__()
-'''
+'''.format(",'cos_inclination" if args.sini else "" )
 )
 
 if (   'CST' in args.hot_region_model
@@ -3154,9 +3155,9 @@ module += (
 
         # compactness ratio M/R_eq
         p += [gravradius(ref['mass']) / ref['radius']]
-
+        {0}
         return p
-'''
+'''.format("p += [np.sqrt( 1 - ref['sin_inclination']**2 )]\n" if args.sini else "")
 )
 
 write(r'{}.py'.format(os.path.join(module_directory_path, args.custom_prior_module)), module)
