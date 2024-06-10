@@ -2404,7 +2404,7 @@ class CustomPrior(xpsi.Prior):
     def __init__(self):
 
         super(CustomPrior, self).__init__()
-'''.format(",'cos_inclination" if args.sini else "" )
+'''.format(",'cos_inclination'" if args.sini else "" )
 )
 
 if (   'CST' in args.hot_region_model
