@@ -161,8 +161,8 @@ class CustomData(xpsi.Data):
             raise IOError('No BACKSCAL was provided for source. Could not compute the support of the spectrum')
 
         # Clean
-        support = np.ascontiguousarray( support, dtype=np.double )
-        return support
+        count_rate_support = np.ascontiguousarray( count_rate_support, dtype=np.double )
+        return count_rate_support
 
     def plot(self, num_rot = 2, dpi=200, colormap='inferno'):
 

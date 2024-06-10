@@ -1241,7 +1241,7 @@ parser.add_argument('--number-live-points',
                     help='Number of live points in nested sampling process.')
 
 parser.add_argument('--hypervolume-expansion-factor',
-                    type=float,
+                    type=str,
                     default=10.0,
                     help='Factor by which to expand the hyperellisoid union that approximately minimally bounds the set of live points.')
 
@@ -1610,7 +1610,7 @@ bounds = dict(phase_shift = parse_bounds(args.{0}_phase_shift_bounds,
                           epsrel = 1.0e-8,
                           epsilon = 1.0e-3,
                           sigmas = 10.0,
-                          support = {0}.support,
+                          support = {0}.background_support,
                           prefix = '{0}')
 
 signals[0].append({0}.signal)
@@ -1633,8 +1633,9 @@ class sini_to_cosi(xpsi.Derive):
     def __init__(self, sini):
         self.sini = sini
 
-    def __call__(self, caller = None):
-        return np.sqrt( 1 - self.sini.evaluate()**2 )
+    def __call__(self, boundto, caller = None):
+        sini = self.sini.evaluate()
+        return np.sqrt( 1 - sini**2 )
 
 bounds = dict(mass = parse_bounds(args.mass_bounds,
                                 args.mass_value),
@@ -1651,7 +1652,9 @@ values = dict(mass = parse_value(args.mass_value),
             frequency = {0})
 
 spacetime = xpsi.Spacetime(bounds, values)
-    '''.format(str(args.frequency))
+spacetime.merge(sini)
+
+'''.format(str(args.frequency))
     )
 else:
     module += (
@@ -2004,7 +2007,7 @@ if __name__ == '__main__':
 
         if args.sample_files_root is None:
             args.sample_files_root = 'nlive{:d}_expf{:.1f}_{}_{}_tol{:.1g}'.format(args.number_live_points,
-                                                                                   args.hypervolume_expansion_factor,
+                                                                                   eval( args.hypervolume_expansion_factor ),
                                                                                    'noCONST' if not args.constant_efficiency_variant else 'CONST',
                                                                                    'noMM' if not args.mode_separation_variant else 'MM',
                                                                                    args.estimated_remaining_log_evidence)
@@ -2015,7 +2018,7 @@ if __name__ == '__main__':
                           'outputfiles_basename': os.path.join(args.sample_files_directory_path, args.sample_files_root),
                           'n_iter_before_update': args.number_iterations_per_write,
                           'n_live_points': args.number_live_points,
-                          'sampling_efficiency': 1.0 / args.hypervolume_expansion_factor,
+                          'sampling_efficiency': 1.0 / eval( args.hypervolume_expansion_factor ),
                           'const_efficiency_mode': args.constant_efficiency_variant,
                           'wrapped_params': wrapped_params,
                           'evidence_tolerance': args.estimated_remaining_log_evidence,
@@ -2286,11 +2289,11 @@ parser.add_argument('--distance-prior',
                     action=CompileAction,
                     help='Prior inverse CDF of Earth distance (kpc). {1}')
 
-parser.add_argument('--cos-inclination-prior',
+parser.add_argument('--{2}-inclination-prior',
                     type=str,
                     nargs='*',
                     action=CompileAction,
-                    help='Prior inverse CDF of cosine of Earth inclination to stellar spin axis. {1}')
+                    help='Prior inverse CDF of {2} of Earth inclination to stellar spin axis. {1}')
 
 parser.add_argument('--neutral-hydrogen-column-density-prior',
                     type=str,
@@ -2304,7 +2307,8 @@ parser.add_argument('--{0}-super-temperature-prior',
                     action=CompileAction,
                     help='Prior inverse CDF of hot-region {0} superseding region log10(temperature [K]). {1}')
 '''.format(args.prefix[0],
-           _CDF_notice)
+           _CDF_notice,
+           'sin' if args.sini else 'cos')
 )
 
 if args.background_model:
@@ -2393,14 +2397,14 @@ module += (
 class CustomPrior(xpsi.Prior):
     """ A joint prior PDF. """
 
-    __derived_names__ = ['compactness']
+    __derived_names__ = ['compactness'{0}]
 
     __draws_from_support__ = 4
 
     def __init__(self):
 
         super(CustomPrior, self).__init__()
-'''
+'''.format(",'cos_inclination" if args.sini else "" )
 )
 
 if (   'CST' in args.hot_region_model
@@ -3151,9 +3155,9 @@ module += (
 
         # compactness ratio M/R_eq
         p += [gravradius(ref['mass']) / ref['radius']]
-
+        {0}
         return p
-'''
+'''.format("p += [np.sqrt( 1 - ref['sin_inclination']**2 )]\n" if args.sini else "")
 )
 
 write(r'{}.py'.format(os.path.join(module_directory_path, args.custom_prior_module)), module)
