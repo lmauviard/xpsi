@@ -54,6 +54,7 @@ class ResidualPlot(SignalPlot):
                  data_cmap='inferno',
                  model_cmap='inferno',
                  residual_cmap='PuOr',
+                 theta_to_plot=None,
                  plot_pulse=False,
                  **kwargs):
         super(ResidualPlot, self).__init__(**kwargs)
@@ -62,6 +63,8 @@ class ResidualPlot(SignalPlot):
         self._model_cmap = model_cmap
         self._residual_cmap = residual_cmap
         self._plot_pulse = plot_pulse
+        if not theta_to_plot is None:
+            self.theta_to_plot = theta_to_plot
 
         self._data_row = 0
         self._model_row = 1 

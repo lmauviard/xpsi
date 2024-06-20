@@ -148,6 +148,7 @@ class SpectrumPlot(SignalPlot):
                  plot_truth=False,
                  truth_line_kwargs=None,
                  comp_truth_line_kwargs=None,
+                 theta_to_plot=None,
                  **kwargs):
 
         try:
@@ -181,6 +182,9 @@ class SpectrumPlot(SignalPlot):
                     incident_contour_kwargs if incident_contour_kwargs else {}
             self._registered_contour_kwargs =\
                 registered_contour_kwargs if registered_contour_kwargs else {}
+
+        if not theta_to_plot is None:
+            self.theta_to_plot = theta_to_plot
 
         self._get_figure()
         fig = self._fig

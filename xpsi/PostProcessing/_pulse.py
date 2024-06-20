@@ -118,6 +118,7 @@ class PulsePlot(SignalPlot):
                  plot_truth=False,
                  truth_line_kwargs=None,
                  comp_truth_line_kwargs=None,
+                 theta_to_plot=None,
                  **kwargs):
         super(PulsePlot, self).__init__(**kwargs)
 
@@ -205,6 +206,9 @@ class PulsePlot(SignalPlot):
             self._comp_expectation_line_kwargs = comp_expectation_line_kwargs
         else:
             self._comp_expectation_line_kwargs = self._expectation_line_kwargs
+
+        if not theta_to_plot is None:
+            self.theta_to_plot = theta_to_plot
 
         plt.close()
 
