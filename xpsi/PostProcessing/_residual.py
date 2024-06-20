@@ -54,23 +54,48 @@ class ResidualPlot(SignalPlot):
                  data_cmap='inferno',
                  model_cmap='inferno',
                  residual_cmap='PuOr',
+                 plot_pulse=False,
                  **kwargs):
         super(ResidualPlot, self).__init__(**kwargs)
 
         self._data_cmap = data_cmap
         self._model_cmap = model_cmap
         self._residual_cmap = residual_cmap
+        self._plot_pulse = plot_pulse
 
+        self._data_row = 0
+        self._model_row = 1 
+        self._resid_row = 2
+
+        # Changes some constants if required
+        if self._plot_pulse:
+
+            # Move all rows by one
+            cls = type(self)
+            cls.__rows__ = 4
+            cls.__ax_rows__ = 4
+            cls.__height_ratios__ = [1]*4
+            self._pulse_row = 0
+            self._data_row = 1
+            self._model_row = 2 
+            self._resid_row = 3
+
+        # Get on plotting
         self._get_figure()
 
-        self._ax_data = self._add_subplot(0,0)
-        self._ax_data_cb = self._add_subplot(0,1)
+        self._ax_data = self._add_subplot(self._data_row,0)
+        self._ax_data_cb = self._add_subplot(self._data_row,1)
 
-        self._ax_model = self._add_subplot(1,0)
-        self._ax_model_cb = self._add_subplot(1,1)
+        self._ax_model = self._add_subplot(self._model_row,0)
+        self._ax_model_cb = self._add_subplot(self._model_row,1)
 
-        self._ax_resid = self._add_subplot(2,0)
-        self._ax_resid_cb = self._add_subplot(2,1)
+        self._ax_resid = self._add_subplot(self._resid_row,0)
+        self._ax_resid_cb = self._add_subplot(self._resid_row,1)
+
+        # Plot the pulse if required
+        if self._plot_pulse:
+            self._ax_pulse = self._add_subplot(self._pulse_row,0)
+            self._ax_pulse.set_ylabel(r'Counts')
 
         self._ax_resid.set_xlabel('$\phi$ [cycles]')
         for ax in (self._ax_data, self._ax_model):
@@ -134,6 +159,8 @@ class ResidualPlot(SignalPlot):
         self._add_data()
         self._add_expected_counts()
         self._add_residuals()
+        if self._plot_pulse:
+            self.add_pulses()
 
     def _set_vminmax(self):
         """ Compute minimum and maximum for data and model colorbars. """
@@ -141,6 +168,28 @@ class ResidualPlot(SignalPlot):
                          _np.min(self._signal.data.counts/2.0))
         self._vmax = max(_np.max(self.expected_counts/2.0),
                          _np.max(self._signal.data.counts/2.0))
+
+    def add_pulses( self ):
+        """ Display the pulse over the data if requested """
+
+        # Get the pulse of data and model
+        doubles_phases = _np.concatenate( (self._signal.data.phases[:-1] , (self._signal.data.phases[:-1]+1.0)), axis=0 ) 
+        pulse_data = self._signal.data.counts.sum( axis = 0 )
+        double_pulse_data = _np.concatenate( (pulse_data , pulse_data), axis=0 )
+        pulse_model = self.expected_counts.sum( axis = 0 )
+        double_pulse_model = _np.concatenate( (pulse_model , pulse_model) )
+
+        # Plot pulse
+        self._ax_pulse.errorbar(x=doubles_phases,
+                                y=double_pulse_data,
+                                yerr=_np.sqrt( double_pulse_data ),
+                                ds='steps-mid',
+                                label='Data', color='black')
+        
+        self._ax_pulse.errorbar(x=doubles_phases,
+                                y=double_pulse_model, 
+                                ds='steps-mid',
+                                label='Model', color='steelblue')
 
     def _add_data(self):
         """ Display data in topmost panel. """
