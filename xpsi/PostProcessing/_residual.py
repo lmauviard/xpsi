@@ -1,4 +1,5 @@
 from ._global_imports import *
+from scipy.ndimage import gaussian_filter
 
 from ._signalplot import SignalPlot
 
@@ -56,6 +57,7 @@ class ResidualPlot(SignalPlot):
                  residual_cmap='PuOr',
                  theta_to_plot=None,
                  plot_pulse=False,
+                 blur_residuals=False,
                  **kwargs):
         super(ResidualPlot, self).__init__(**kwargs)
 
@@ -63,6 +65,7 @@ class ResidualPlot(SignalPlot):
         self._model_cmap = model_cmap
         self._residual_cmap = residual_cmap
         self._plot_pulse = plot_pulse
+        self._blur_residuals = blur_residuals
         if not theta_to_plot is None:
             self.theta_to_plot = theta_to_plot
 
@@ -308,25 +311,56 @@ class ResidualPlot(SignalPlot):
         channel_edges[0] = channels[0]-chandiff1
         channel_edges[len(channels)] = channels[len(channels)-1]+chandiff2
 
-        resid = self._ax_resid.pcolormesh(self._signal.data.phases,
-                                      channel_edges,
-                                      self._residuals,
-                                      cmap = cm.get_cmap(self._residual_cmap),
-                                      vmin = -vmax,
-                                      vmax = vmax,
-                                      linewidth = 0,
-                                      rasterized = self._rasterized)
-        resid.set_edgecolor('face')
+        # Plot
+        if not self._blur_residuals:
+            resid = self._ax_resid.pcolormesh(self._signal.data.phases,
+                                        channel_edges,
+                                        self._residuals,
+                                        cmap = cm.get_cmap(self._residual_cmap),
+                                        vmin = -vmax,
+                                        vmax = vmax,
+                                        linewidth = 0,
+                                        rasterized = self._rasterized)
+            resid.set_edgecolor('face')
 
-        resid = self._ax_resid.pcolormesh(self._signal.data.phases + 1.0,
-                                      channel_edges,
-                                      _np.abs(self._residuals),
-                                      cmap = cm.get_cmap(self._residual_cmap),
-                                      vmin = -vmax,
-                                      vmax = vmax,
-                                      linewidth = 0,
-                                      rasterized = self._rasterized)
-        resid.set_edgecolor('face')
+            resid = self._ax_resid.pcolormesh(self._signal.data.phases + 1.0,
+                                        channel_edges,
+                                        _np.abs(self._residuals),
+                                        cmap = cm.get_cmap(self._residual_cmap),
+                                        vmin = -vmax,
+                                        vmax = vmax,
+                                        linewidth = 0,
+                                        rasterized = self._rasterized)
+            resid.set_edgecolor('face')
+        else:
+            k=30
+            extended_phases = _np.linspace(self._signal.data.phases[0],self._signal.data.phases[-1:],num=(self._signal.data.phases.shape[0]-1)*k+1)
+            extended_channels = _np.log10( _np.logspace(channel_edges[0],channel_edges[-1:],num=(channel_edges.shape[0]-1)*k+1) )
+
+            extended_residuals = _np.repeat( _np.repeat( self._residuals , k , axis=0 ), k , axis=1 )
+            blurred_residuals = gaussian_filter( extended_residuals , 
+                                                 sigma=k,
+                                                 mode=['constant','wrap'] )
+
+            resid = self._ax_resid.pcolormesh(_np.squeeze(extended_phases),
+                                        _np.squeeze(extended_channels),
+                                        blurred_residuals,
+                                        cmap = cm.get_cmap(self._residual_cmap),
+                                        vmin = -vmax,
+                                        vmax = vmax,
+                                        linewidth = 0,
+                                        rasterized = self._rasterized)
+            resid.set_edgecolor('face')
+
+            resid = self._ax_resid.pcolormesh(_np.squeeze(extended_phases) + 1.0,
+                                        _np.squeeze(extended_channels),
+                                        _np.abs(blurred_residuals),
+                                        cmap = cm.get_cmap(self._residual_cmap),
+                                        vmin = -vmax,
+                                        vmax = vmax,
+                                        linewidth = 0,
+                                        rasterized = self._rasterized)
+            resid.set_edgecolor('face')
 
         self._ax_resid.axvline(1.0, lw=self._tick_width, color='k')
 
