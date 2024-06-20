@@ -164,10 +164,10 @@ class ResidualPlot(SignalPlot):
 
     def _set_vminmax(self):
         """ Compute minimum and maximum for data and model colorbars. """
-        self._vmin = min(_np.min(self.expected_counts/2.0),
-                         _np.min(self._signal.data.counts/2.0))
-        self._vmax = max(_np.max(self.expected_counts/2.0),
-                         _np.max(self._signal.data.counts/2.0))
+        self._vmin = min(_np.min(self.expected_counts),
+                         _np.min(self._signal.data.counts))
+        self._vmax = max(_np.max(self.expected_counts),
+                         _np.max(self._signal.data.counts))
 
     def add_pulses( self ):
         """ Display the pulse over the data if requested """
@@ -210,7 +210,7 @@ class ResidualPlot(SignalPlot):
 
         data = self._ax_data.pcolormesh(self._signal.data.phases,
                                         channel_edges,
-                                        self._signal.data.counts/2.0,
+                                        self._signal.data.counts,
                                         cmap = cm.get_cmap(self._data_cmap),
                                         vmin = self._vmin,
                                         vmax = self._vmax,
@@ -220,7 +220,7 @@ class ResidualPlot(SignalPlot):
 
         data = self._ax_data.pcolormesh(self._signal.data.phases + 1.0,
                                         channel_edges,
-                                        self._signal.data.counts/2.0,
+                                        self._signal.data.counts,
                                         cmap = cm.get_cmap(self._data_cmap),
                                         vmin = self._vmin,
                                         vmax = self._vmax,
@@ -258,7 +258,7 @@ class ResidualPlot(SignalPlot):
 
         model = self._ax_model.pcolormesh(self._signal.data.phases,
                                           channel_edges,
-                                          self.expected_counts/2.0,
+                                          self.expected_counts,
                                           cmap = cm.get_cmap(self._model_cmap),
                                           vmin = self._vmin,
                                           vmax = self._vmax,
@@ -268,7 +268,7 @@ class ResidualPlot(SignalPlot):
 
         model = self._ax_model.pcolormesh(self._signal.data.phases + 1.0,
                                           channel_edges,
-                                          self.expected_counts/2.0,
+                                          self.expected_counts,
                                           cmap = cm.get_cmap(self._model_cmap),
                                           vmin = self._vmin,
                                           vmax = self._vmax,
