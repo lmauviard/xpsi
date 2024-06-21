@@ -101,7 +101,11 @@ class ResidualPlot(SignalPlot):
         # Plot the pulse if required
         if self._plot_pulse:
             self._ax_pulse = self._add_subplot(self._pulse_row,0)
-            self._ax_pulse.set_ylabel(r'Counts')
+            self._ax_pulse.set_ylabel(r'Total counts')
+            self._ax_pulse.xaxis.set_major_locator(MultipleLocator(0.2))
+            self._ax_pulse.xaxis.set_minor_locator(MultipleLocator(0.05))
+            self._ax_pulse.tick_params(axis='x', labelbottom=False)
+            self._ax_pulse.set_xlim([0.0,2.0])
 
         self._ax_resid.set_xlabel('$\phi$ [cycles]')
         for ax in (self._ax_data, self._ax_model):
@@ -178,6 +182,11 @@ class ResidualPlot(SignalPlot):
     def add_pulses( self ):
         """ Display the pulse over the data if requested """
 
+        try:
+            self._vmin
+        except AttributeError:
+            self._set_vminmax()
+            
         # Get the pulse of data and model
         doubles_phases = _np.concatenate( (self._signal.data.phases[:-1] , (self._signal.data.phases[:-1]+1.0)), axis=0 ) 
         pulse_data = self._signal.data.counts.sum( axis = 0 )
@@ -196,6 +205,9 @@ class ResidualPlot(SignalPlot):
                                 y=double_pulse_model, 
                                 ds='steps-mid',
                                 label='Model', color='steelblue')
+
+        self._ax_pulse.legend(loc='lower right')
+
 
     def _add_data(self):
         """ Display data in topmost panel. """
