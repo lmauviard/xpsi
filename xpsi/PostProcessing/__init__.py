@@ -21,6 +21,7 @@ The typical usage pattern is to use the following classes:
       distribution to be processed, where these native classes are
 
         + :class:`~xpsi.PostProcessing.ResidualPlot`
+        + :class:`~xpsi.PostProcessing.Residual1DPlot`
         + :class:`~xpsi.PostProcessing.PulsePlot`
         + :class:`~xpsi.PostProcessing.SpectrumPlot`
 
@@ -60,11 +61,13 @@ else:
                "SignalPlotter",
                "PulsePlot",
                "SpectrumPlot",
-               "ResidualPlot"]
+               "ResidualPlot",
+               "Residual1DPlot"]
 
     from ._runs import Runs
     from ._signalplotter import SignalPlotter
     from ._residual import ResidualPlot
+    from ._1d_residual import Residual1DPlot
     from ._pulse import PulsePlot
     from ._spectrum import SpectrumPlot
     from ._backends import NestedBackend
