@@ -194,6 +194,9 @@ class ResidualPlot(SignalPlot):
         pulse_model = self.expected_counts.sum( axis = 0 )
         double_pulse_model = _np.concatenate( (pulse_model , pulse_model) )
 
+        # Compute the chi squared
+        chi2 = _np.sum( (pulse_data - pulse_model)**2 / pulse_model )
+
         # Plot pulse
         self._ax_pulse.errorbar(x=doubles_phases,
                                 y=double_pulse_data,
@@ -204,7 +207,7 @@ class ResidualPlot(SignalPlot):
         self._ax_pulse.errorbar(x=doubles_phases,
                                 y=double_pulse_model, 
                                 ds='steps-mid',
-                                label='Model', color='steelblue')
+                                label=r'Model $\chi^2=$'+f'{chi2:.2f}', color='steelblue')
 
         self._ax_pulse.legend(loc='lower right')
 
