@@ -164,7 +164,7 @@ class CustomData(xpsi.Data):
         count_rate_support = np.ascontiguousarray( count_rate_support, dtype=np.double )
         return count_rate_support
 
-    def plot(self, num_rot = 2, dpi=200, colormap='inferno'):
+    def plot(self, num_rot = 2, dpi=200, plot_spectrum=True, colormap='inferno'):
 
         # Get the counts
         counts_list = [ self.counts for i in range(num_rot) ]
@@ -173,11 +173,15 @@ class CustomData(xpsi.Data):
         phases = np.concatenate( (phase_list), axis=0 )
 
         # Do the plot
-        mosaic = [['A','.'],['B','C']]
-        fig,axs = plt.subplot_mosaic( mosaic , height_ratios=[1.,1.], width_ratios=[3,1])
+        if plot_spectrum:
+            mosaic = [['A','.'],['B','C']]
+            fig,axs = plt.subplot_mosaic( mosaic , height_ratios=[1.,1.], width_ratios=[3,1], layout='constrained')
+        else:
+            mosaic = [['A'],['B']]
+            fig,axs = plt.subplot_mosaic( mosaic , height_ratios=[1.,1.], sharex=True, layout='constrained')
 
         ax1 = axs['A']
-        ax1.step( phases, counts.sum(axis=0) , color='black')
+        ax1.errorbar( x=phases, y=counts.sum(axis=0), yerr=np.sqrt( counts.sum(axis=0) ), ds='steps-mid', color='black' )
         ax1.set_ylabel('Counts')
 
         ax2 = axs['B']
@@ -186,18 +190,18 @@ class CustomData(xpsi.Data):
         ax2.set_xlabel(r'Phase $\phi$ [cycles]')
         ax2.set_ylabel('PI channel')
         ax2.set_yscale('log')
-
-        ax3 = axs['C']
-        ax3.sharey( ax2 )
-        ax3.get_yaxis().set_visible(False)
-        ax3.step( counts.sum(axis=1)/2, self.channels , color='black')
-        ax3.set_yscale('log')
-        ax3.set_xlabel('Counts per channel')
-
-        plt.colorbar( im , ax=ax3 , label='Counts')
+        
+        if plot_spectrum:
+            ax3 = axs['C']
+            ax3.sharey( ax2 )
+            ax3.get_yaxis().set_visible(False)
+            ax3.step( counts.sum(axis=1)/2, self.channels , color='black')
+            ax3.set_yscale('log')
+            ax3.set_xlabel('Counts per channel')
+            
+        fig.colorbar( im , ax=ax2 , label='Counts')
 
         fig.set_dpi(dpi)
-        fig.tight_layout()
 
     def plot_spectra(self, num_rot=2):
 
