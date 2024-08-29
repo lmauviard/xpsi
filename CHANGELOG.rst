@@ -34,6 +34,61 @@ and this project adheres to
 .. ^^^^^^^^^^^
 
 
+[v2.2.7] - 2024-07-13
+~~~~~~~~~~~~~~~~~~~~~
+
+Summary
+^^^^^^^
+
+* Fixed a bug, introduced in the accretion disk upgrade in version 2.2.5, when calculating the "Elsewhere" signal. IMPORTANT: Do not use X-PSI versions 2.2.5 or 2.2.6 if including the Elsewhere (i.e. rest of star surface) signal into the analysis!! It can lead to faulty results without warnings/errors.
+
+Fixed
+^^^^^
+
+* Fixed a bug in ```xpsi/cellmesh/integrator_for_azimuthal_invariance.pyx``, by changing the "E_electronrest" input parameter back to the original "E_prime" when calling the intensity evaluation for the "elsewhere" contribution of the hot spot surface. The "E_electronrest" parameter should have likely been there only when having the new Num5D atmosphere activated (although it probably would not have worked correctly even in that case). For other atmospheres, no values were assigned to "E_electronrest", and thus intensities were probably calculated for some random energy values from the computer memory.
+
+Attribution
+^^^^^^^^^^^
+
+Tuomo Salmi (T.S.)
+
+
+[v2.2.6] - 2024-07-11
+~~~~~~~~~~~~~~~~~~~~~
+
+Summary
+^^^^^^^
+
+* Added UltraNest as a sampler. 
+
+Added
+^^^^^
+
+* Added ``xpsi.UltranestSampler.py`` which is a wrapper for the UltraNest package.
+
+* Added ``ultranested`` function to ``xpsi.Sample.py`` to select UltraNest as a sampler.
+
+Attribution
+^^^^^^^^^^^
+
+Mariska Hoogkamer (M.H.)
+
+
+[v2.2.5] - 2024-06-17
+~~~~~~~~~~~~~~~~~~~~~
+
+Summary
+^^^^^^^
+
+* A new accretion disk implentation and another 5D atmosphere interpolation examples were added.
+
+Attribution
+^^^^^^^^^^^
+
+Bas Dorsman
+Tuomo Salmi
+
+
 [v2.2.4] - 2024-05-28
 ~~~~~~~~~~~~~~~~~~~~~
 
