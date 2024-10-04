@@ -185,7 +185,7 @@ class CustomData(xpsi.Data):
         ax1.set_ylabel('Counts')
 
         ax2 = axs['B']
-        im = ax2.pcolormesh( phases, self.channels , counts, cmap=colormap)
+        im = ax2.pcolormesh( phases, self.channels , counts, cmap=colormap, shading='auto', linewidth=0., edgecolor='k', rasterized=True)
         ax2.sharex( ax1 )
         ax2.set_xlabel(r'Phase $\phi$ [cycles]')
         ax2.set_ylabel('PI channel')
@@ -200,8 +200,9 @@ class CustomData(xpsi.Data):
             ax3.set_xlabel('Counts per channel')
             
         fig.colorbar( im , ax=ax2 , label='Counts')
-
         fig.set_dpi(dpi)
+
+        return fig, axs
 
     def plot_spectra(self, num_rot=2):
 
