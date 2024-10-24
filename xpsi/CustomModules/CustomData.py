@@ -43,7 +43,8 @@ class CustomData(xpsi.Data):
                  n_phases=32, 
                  channels=None, 
                  phase_column='PULSE_PHASE',
-                 channel_column='PI'):
+                 channel_column='PI',
+                 phase_shift=0):
 
         # Read the fits file
         with fits.open( path ) as hdul:
@@ -53,7 +54,7 @@ class CustomData(xpsi.Data):
         # Extract useful data
         exposure = Header['EXPOSURE']
         channel_data = EvtList[channel_column]
-        phases_data = EvtList[ phase_column ]
+        phases_data = ( EvtList[ phase_column ] + phase_shift ) % 1.0 
 
         # No channels specified, use everything
         if channels is None:
@@ -198,6 +199,7 @@ class CustomData(xpsi.Data):
             ax3.step( counts.sum(axis=1)/2, self.channels , color='black')
             ax3.set_yscale('log')
             ax3.set_xlabel('Counts per channel')
+            ax3.grid()
             
         fig.colorbar( im , ax=ax2 , label='Counts')
         fig.set_dpi(dpi)
