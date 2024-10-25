@@ -14,6 +14,7 @@ class CustomData(xpsi.Data):
              channels=None, 
              phase_column='PULSE_PHASE',
              channel_column='PI',
+             phase_shift=0.,
              datafolder = None):
         
         # Add the path if required
@@ -33,7 +34,8 @@ class CustomData(xpsi.Data):
                  n_phases=n_phases, 
                  channels=channels, 
                  phase_column=phase_column,
-                 channel_column=channel_column)
+                 channel_column=channel_column,
+                 phase_shift=phase_shift)
         
         else:
             raise IOError('HDUCLAS1 of Header does not match PHA or EVT files values. Could not load.')
@@ -44,7 +46,7 @@ class CustomData(xpsi.Data):
                  channels=None, 
                  phase_column='PULSE_PHASE',
                  channel_column='PI',
-                 phase_shift=0):
+                 phase_shift=0.):
 
         # Read the fits file
         with fits.open( path ) as hdul:
