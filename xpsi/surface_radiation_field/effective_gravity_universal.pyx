@@ -67,5 +67,8 @@ cdef double effectiveGravity(double mu,
         return log10(g * g_0) + 2.0
     elif(star_shape_ind == 1):  # A spherical star
         return log10(g_0) + 2.0
+    elif(star_shape_ind == 2):  # J1614 case
+        g = 0.9985 + epsilon * ( -0.5454 + (1.504 + 0.2422*x)*(mu**2) - 0.6679*x*(mu**4) )
+        return log10(g * g_0) + 2.0
     else:
         raise TypeError("Invalid star_shape option!")

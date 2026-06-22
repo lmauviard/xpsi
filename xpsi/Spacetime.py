@@ -91,7 +91,7 @@ class Spacetime(ParameterSubspace):
     @star_shape.setter
     def star_shape(self,star_shape):
         """ Set the shape of the star. """
-        allowed_models = ["AGM_14","sphere"]
+        allowed_models = ["AGM_14","sphere","J1614"]
         if star_shape not in allowed_models:
             raise TypeError("Invalid star_shape option.")
         self._star_shape = star_shape

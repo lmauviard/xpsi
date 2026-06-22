@@ -52,6 +52,8 @@ cdef double radiusNormalised(double mu,
         return 1.0 + epsilon * (-0.788 + 1.030 * zeta) * mu * mu
     elif(star_shape_ind == 1):  # A spherical star
         return 1.0
+    elif(star_shape_ind == 2):  # J1614 case
+        return 1.0 + epsilon * (0.615 - 2*zeta + (-0.0539/(zeta**2) + 0.00079/(zeta**4))) * mu * mu
     else:
         raise TypeError("Invalid star_shape option!")
 
@@ -93,6 +95,9 @@ cdef double f_theta(double mu,
         return radiusDerivNormed / (radiusNormed * sqrt(1.0 - 2.0 * zeta / radiusNormed))
     elif(star_shape_ind == 1):  # A spherical star
         return 0.0
+    elif (star_shape_ind == 2): # J1614 case
+        radiusDerivNormed = -2.0 * epsilon * (0.615 - 2*zeta + (-0.0539/(zeta**2) + 0.00079/(zeta**4))) * mu * sqrt(1.0 - mu * mu)
+        return radiusDerivNormed / (radiusNormed * sqrt(1.0 - 2.0 * zeta / radiusNormed))
     else:
         raise TypeError("Invalid star_shape option!")
 
