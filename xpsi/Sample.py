@@ -1,4 +1,4 @@
-__all__ = ["run_multinest", "run_emcee", "run_ultranest"]
+__all__ = ["run_multinest", "run_emcee", "run_ultranest","run_nessai"]
 
 from xpsi.global_imports import *
 from xpsi import _comm, _rank, _size
@@ -18,6 +18,10 @@ try:
     from xpsi.UltranestSampler import UltranestSampler
 except ImportError:
     print("""Check your installation of UltraNest if using the UltranestSampler""")
+try:
+    from xpsi.NessaiSampler import NessaiSampler
+except ImportError:
+    print("""Check your installation of nessai if using the NessaiSampler""")
 
 posterior = None
 
@@ -396,3 +400,38 @@ def ultranested(likelihood,
                          use_stepsampler=use_stepsampler,
                          stepsampler_params=stepsampler_params,
                          out_filename=out_filename)
+
+def run_nessai(
+    likelihood,
+    prior,
+    sampler_build_kwargs=None,
+    runtime_params=None,
+    log_likelihood_floor=None,):
+    """ Initialise i-nessai (https://nessai.readthedocs.io/) and sample serially.
+
+    :param likelihood: An instance of :class:`~.Likelihood.Likelihood`.
+
+    :param prior: An instance of :class:`~.Prior.Prior`.
+
+    :param sampler_build_kwargs: Keyword arguments for
+        :class:`nessai.flowsampler.FlowSampler`, e.g. ``nlive`` and ``output``.
+        ``importance_nested_sampler`` defaults to ``True``. Set it to ``False``
+        to use standard Nessai.
+
+    :param runtime_params: Keyword arguments for
+        :meth:`nessai.flowsampler.FlowSampler.run`.
+
+    :param log_likelihood_floor: Optional constant lower bound applied to the
+        X-PSI log-likelihood. See :class:`~.NessaiSampler.NessaiSampler` for
+        choosing the floor and the i-nessai startup checks.
+
+    Native Nessai output uses unit-hypercube coordinates. Physical posterior
+    samples are available through ``sampler.posterior_samples``. No X-PSI
+    run files are exported.
+
+    :returns: An instance of :class:`~.NessaiSampler.NessaiSampler`.
+    """
+    sampler = NessaiSampler(likelihood, prior, sampler_build_kwargs,
+                           log_likelihood_floor=log_likelihood_floor)
+    sampler(runtime_params or {})
+    return sampler
